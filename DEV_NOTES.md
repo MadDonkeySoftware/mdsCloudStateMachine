@@ -22,7 +22,6 @@
         * Ex: between 1 and 30 days. Ideally evicted after shipping to logging store
     * The intent here is for operators to house logs and other such data in a more robust logging store
 
-
 ## Technologies
 
 * Used by fnProject
@@ -32,28 +31,3 @@
         * Bolt is golang specific, Alternative needed.
 * Possible Candidates
     * https://github.com/weyoss/redis-smq
-
-## Data Model
-
-* StateMachine
-    * Id            [Text] - The GUID to identify the state machine
-    * Name          [Text] - The friendly name for this state machine (Optional)
-    * ActiveVersion [Text] - Reference to StateMachineVersion
-
-* StateMachineVersion (versions to support updates while executions are in flight)
-    * Id         [Text] - The GUID to identify the state machine
-    * Definition [Text] - The state machine workflow definition
-
-* Execution
-    * Id      [Text] - The GUID to identify this execution
-    * Created [Text] - The datetime this execution was created and thus started
-    * Status  [Text] - The status of the state machine. [Pending, Executing, Succeeded, Failed]
-    * Version [Text] - Reference to StateMachineVersion
-
-* Operation
-    * Id        [Text] - The GUID to identify this operation
-    * Execution [Text] - Reference to Execution
-    * Created   [Text] - The datetime this operation was created and thus started
-    * Status    [Text] - The status of the operation. [Pending, Executing, Succeeded, Failed]
-    * Input     [Text] - The JSON encoded object used as input for this operation
-    * Output    [Text] - The JSON encoded object output from this operation
