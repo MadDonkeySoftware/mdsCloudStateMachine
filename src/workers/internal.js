@@ -4,7 +4,7 @@ const operations = require('../operations');
 const Queue = require('./queue');
 const enums = require('../enums');
 
-const internalQueueInterval = 50;
+const internalQueueInterval = process.env.QUEUE_INTERVAL || 50;
 const batchProcessingSize = 1;
 
 // This is the general queue that new invocations from the HTTP endpoints are sent to.
