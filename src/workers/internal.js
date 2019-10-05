@@ -9,11 +9,11 @@ const batchProcessingSize = 1;
 
 // This is the general queue that new invocations from the HTTP endpoints are sent to.
 // They are lesser priority than in-flight work.
-const internalQueue = new Queue();
+const pendingQueue = new Queue('mds-sm-pendingQueue');
 
 // This is the queue for executions that are currently in flight. We try to get executions
 // that are mid flight out the way before starting "pending" work.
-const inFlightQueue = new Queue();
+const inFlightQueue = new Queue('mds-sm-inFlightQueue');
 
 let running = false;
 const handleAppShutdown = () => { running = false; };
@@ -45,17 +45,46 @@ const invokeOperation = (data) => {
 };
 
 const processMessage = (message) => {
-  if (message.fromInvoke) {
-    repos.updateExecution(message.executionId, 'Executing');
+  const event = JSON.parse(message.message);
+  if (event.fromInvoke) {
+    repos.updateExecution(event.executionId, 'Executing');
   }
 
-  repos.getOperation(message.operationId)
+  repos.getOperation(event.operationId)
     .then((operation) => buildOperationDataBundle(operation))
     .then((data) => invokeOperation(data))
-    .catch((err) => logger.warn('process message failed', err));
+    .catch((err) => logger.warn('process event failed', err));
+};
+
+const pullMessageFromQueue = (queue, limit, runningData) => {
+  const data = runningData || { count: 0 };
+
+  if (data.count < limit) {
+    return queue.dequeue().then((message) => {
+      // TODO: Deleting the message here may not be the best idea.
+      // Entertain moving it to processMessage.
+      if (message) {
+        return queue.delete(message.id).then(() => message);
+      }
+
+      return message;
+    }).then((message) => {
+      if (message) {
+        processMessage(message);
+        data.count += 1;
+        return pullMessageFromQueue(queue, limit, data);
+      }
+
+      data.needMore = true;
+      return Promise.resolve(data);
+    });
+  }
+
+  return Promise.resolve(data);
 };
 
 const processMessages = () => {
+  /*
   let count = 0;
   if (inFlightQueue.size() > 0) {
     while (count < batchProcessingSize && inFlightQueue.size() > 0) {
@@ -65,9 +94,9 @@ const processMessages = () => {
     }
   }
 
-  if (internalQueue.size() > 0) {
-    while (count < batchProcessingSize && internalQueue.size() > 0) {
-      const message = internalQueue.dequeue();
+  if (pendingQueue.size() > 0) {
+    while (count < batchProcessingSize && pendingQueue.size() > 0) {
+      const message = pendingQueue.dequeue();
       processMessage(message);
       count += 1;
     }
@@ -76,6 +105,10 @@ const processMessages = () => {
   if (running) {
     delay(internalQueueInterval).then(() => processMessages());
   }
+  */
+  pullMessageFromQueue(inFlightQueue, batchProcessingSize)
+    .then((data) => data.needMore && pullMessageFromQueue(pendingQueue, batchProcessingSize, data))
+    .then(() => running && delay(internalQueueInterval).then(() => processMessages()));
 };
 
 const enqueueDelayedMessages = () => {
@@ -86,14 +119,13 @@ const enqueueDelayedMessages = () => {
         operationId: delayed.id,
       })));
   });
-  // .then(() => next && internalQueue.enqueue({ executionId, operationId: nextOpId }))
 
   if (running) {
     delay(internalQueueInterval).then(() => enqueueDelayedMessages());
   }
 };
 
-const enqueueMessage = (message) => internalQueue.enqueue(message);
+const enqueueMessage = (message) => pendingQueue.enqueue(message);
 
 const startWorker = () => {
   if (!running) {
