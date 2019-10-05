@@ -1,7 +1,7 @@
 {
   "name": "fn-state-machine",
   "version": "1.0.0",
-  "description": "A StepFunctions-like implementation for the fnProject",
+  "description": "A StepFunctions-like implementation for use with any FaaS",
   "repository": {
     "url": "https://github.com/fritogotlayed/fnStateMachine"
   },
