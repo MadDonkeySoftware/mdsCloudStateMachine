@@ -17,16 +17,24 @@ function Task(definition, metadata) {
 }
 
 const handleInvokeResponse = (that, response) => {
-  // TODO: Handle retries / error configurations.
-  if (response.statusCode !== 200) { throw new Error(response.body); }
-
-  const output = JSON.parse(response.body);
-  const nextOpId = uuid.v4();
   const {
     next,
+    input,
     operationId,
     executionId,
   } = that;
+
+  // TODO: Handle retries / error configurations.
+  if (response.statusCode !== 200) {
+    return repos.updateOperation(operationId, enums.OP_STATUS.Failed, input)
+      .then(() => repos.updateExecution(executionId, enums.OP_STATUS.Failed))
+      .then(() => {
+        throw new Error(response.body);
+      });
+  }
+
+  const output = JSON.parse(response.body);
+  const nextOpId = uuid.v4();
 
   return repos.updateOperation(operationId, enums.OP_STATUS.Succeeded, output)
     .then(() => next && repos.createOperation(nextOpId, executionId, next, output))
