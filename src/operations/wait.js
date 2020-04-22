@@ -1,8 +1,6 @@
-const uuid = require('uuid');
-
 const repos = require('../repos');
 const enums = require('../enums');
-const { logger } = require('../globals');
+const globals = require('../globals');
 
 function Wait(definition, metadata) {
   if (definition.Type !== 'Wait') throw new Error(`Attempted to use ${definition.Type} type for "Wait".`);
@@ -67,12 +65,12 @@ Wait.prototype.run = function run() {
     .then((opDetails) => {
       if (!opDetails.waitUntilUtc || opDetails.waitUntilUtc > new Date().toISOString()) {
         const afterUtc = opDetails.waitUntilUtc || computeWaitTimestamp(that);
-        logger.verbose(`Task waiting until ${afterUtc} UTC.`, { operationId });
+        globals.logger.verbose(`Task waiting until ${afterUtc} UTC.`, { operationId });
         return repos.delayOperation(operationId, afterUtc).then(() => null);
       }
 
-      const nextOpId = uuid.v4();
-      logger.verbose('Task finished waiting.', { operationId });
+      const nextOpId = globals.newUuid();
+      globals.logger.verbose('Task finished waiting.', { operationId });
       return repos.updateOperation(operationId, enums.OP_STATUS.Succeeded)
         .then(() => repos.createOperation(nextOpId, executionId, Next, output))
         .then(() => ({

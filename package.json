@@ -1,9 +1,9 @@
 {
-  "name": "fn-state-machine",
+  "name": "mds-cloud-state-machine",
   "version": "1.0.0",
   "description": "A StepFunctions-like implementation for use with any FaaS",
   "repository": {
-    "url": "https://github.com/fritogotlayed/fnStateMachine"
+    "url": "https://github.com/MadDonkeySoftware/mdsCloudStateMachine"
   },
   "main": "index.js",
   "scripts": {
@@ -15,24 +15,26 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@maddonkeysoftware/mds-sdk-node": "0.0.5",
+    "axios": "^0.19.2",
     "body-parser": "^1.19.0",
     "express": "^4.17.1",
-    "got": "^9.6.0",
+    "mongodb": "^3.5.6",
     "mysql-parse": "^2.0.8",
-    "mysql2": "^1.7.0",
-    "sqlite": "^3.0.3",
-    "uuid": "^3.3.3",
+    "mysql2": "^2.1.0",
+    "sqlite": "^4.0.7",
+    "uuid": "^7.0.3",
     "winston": "^3.2.1"
   },
   "devDependencies": {
     "chai": "^4.2.0",
-    "eslint": "^6.3.0",
-    "eslint-config-airbnb-base": "^14.0.0",
-    "eslint-plugin-import": "^2.18.2",
-    "mocha": "^6.2.0",
-    "npm-check-updates": "^3.1.21",
-    "nyc": "^14.1.1",
-    "sinon": "^7.4.2",
-    "sinon-chai": "^3.3.0"
+    "chai-exclude": "^2.0.2",
+    "eslint": "^6.8.0",
+    "eslint-config-airbnb-base": "^14.1.0",
+    "eslint-plugin-import": "^2.20.2",
+    "mocha": "^7.1.1",
+    "nyc": "^15.0.1",
+    "sinon": "^9.0.2",
+    "sinon-chai": "^3.5.0"
   }
 }

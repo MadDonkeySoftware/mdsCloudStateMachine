@@ -1,6 +1,6 @@
-# faasStateMachine
+# mdsCloudStateMachine
 
-faasStateMachine is a FaaS, Functions as a Service, agnostic application that attempts to mirror the functionality provided by AWS Step Functions upon various FaaS implementations. This project attempts to adhere to the [Amazon States Language](https://docs.aws.amazon.com/step-functions/latest/dg/concepts-amazon-states-language.html) as closely as possible in the event that one may eventually migrate their faasStateMachine definition and FaaS code to the AWS infrastructure in the future.
+mdsCloudStateMachine is a FaaS, Functions as a Service, agnostic application that attempts to mirror the functionality provided by AWS Step Functions upon various FaaS implementations. This project attempts to adhere to the [Amazon States Language](https://docs.aws.amazon.com/step-functions/latest/dg/concepts-amazon-states-language.html) as closely as possible in the event that one may eventually migrate their mdsCloudStateMachine definition and FaaS code to the AWS infrastructure in the future.
 
 ## FaaS Support
 
@@ -13,7 +13,7 @@ faasStateMachine is a FaaS, Functions as a Service, agnostic application that at
 
 Please see the getting started guide for the FaaS platform you are planning to use.
 
-* [fnProject](/faasStateMachine/blob/master/docs/fnProject/Getting_Started.md)
+* [fnProject](/mdsCloudStateMachine/blob/master/docs/fnProject/Getting_Started.md)
 
 ### Design guidelines
 

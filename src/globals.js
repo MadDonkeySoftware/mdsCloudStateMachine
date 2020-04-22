@@ -1,3 +1,4 @@
+const uuid = require('uuid');
 const logger = require('./logger');
 
 /**
@@ -12,8 +13,11 @@ const nextTick = () => new Promise((resolve) => process.nextTick(resolve));
 
 const delay = (timeout) => new Promise((resolve) => setTimeout(resolve, timeout));
 
+const newUuid = () => uuid.v4();
+
 module.exports = {
   logger: activeLogger,
   nextTick,
   delay,
+  newUuid,
 };

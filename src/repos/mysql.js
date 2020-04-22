@@ -1,8 +1,7 @@
 const mysql = require('mysql2/promise');
 const mysqlParse = require('mysql-parse');
-const uuid = require('uuid');
 
-const { logger } = require('../globals');
+const globals = require('../globals');
 const enums = require('../enums');
 
 const mapTypeForReturn = (typeString, data) => {
@@ -21,7 +20,7 @@ const mapTypeForReturn = (typeString, data) => {
     case null:
       return data;
     default:
-      logger.warn('Encountered unknown map type. Returning data as-is.', typeString);
+      globals.logger.warn('Encountered unknown map type. Returning data as-is.', typeString);
       return data;
   }
 };
@@ -85,7 +84,7 @@ const mapResultSetToObject = (results) => {
 let internalDb;
 const getDb = () => {
   if (!internalDb) {
-    logger.debug('Initializing mysql database');
+    globals.logger.debug('Initializing mysql database');
     const opts = mysqlParse.parseUri(process.env.FN_SM_DB_URL);
     delete opts.scheme;
     return mysql.createConnection(opts)
@@ -95,7 +94,7 @@ const getDb = () => {
         return internalDb;
       })
       .catch((err) => {
-        logger.error('Failed to create database', err);
+        globals.logger.error('Failed to create database', err);
         throw err;
       });
   }
@@ -108,13 +107,13 @@ const getStateMachines = (db) => db.execute('SELECT * FROM StateMachine')
   .then((result) => mapResultSetToArray(result));
 
 const createStateMachine = (db, id, name, definitionObject) => {
-  const versionId = uuid.v4();
+  const versionId = globals.newUuid();
   return db.execute('INSERT INTO StateMachineVersion VALUES (:id, :definition)', { id: versionId, definition: JSON.stringify(definitionObject) })
     .then(() => db.execute('INSERT INTO StateMachine VALUES (:id, :name, :active_version)', { id, name, active_version: versionId }));
 };
 
 const updateStateMachine = (db, id, definitionObject) => {
-  const versionId = uuid.v4();
+  const versionId = globals.newUuid();
   return db.execute('INSERT INTO StateMachineVersion VALUES (:id, :definition)', { id: versionId, definition: JSON.stringify(definitionObject) })
     .then(() => db.execute('UPDATE StateMachine SET active_version = :active_version WHERE id = :id', { id, active_version: versionId }));
 };
@@ -128,7 +127,7 @@ const getStateMachine = (db, id) => db.execute('SELECT * FROM StateMachine WHERE
     definition: JSON.parse(data.stateMachineVersion.definition),
   }))
   .catch((err) => {
-    logger.warn('Error during execution', err);
+    globals.logger.warn('Error during execution', err);
   });
 
 const createExecution = (db, id, versionId) => db.execute('INSERT INTO Execution VALUES (:id, :created, :status, :version)', {

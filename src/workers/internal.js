@@ -6,14 +6,16 @@ const enums = require('../enums');
 
 const internalQueueInterval = process.env.QUEUE_INTERVAL || 50;
 const batchProcessingSize = 1;
+const pendingQueueName = process.env.PENDING_QUEUE_NAME || 'mds-sm-pendingQueue';
+const inFlightQueueName = process.env.IN_FLIGHT_QUEUE_NAME || 'mds-sm-inFlightQueue';
 
 // This is the general queue that new invocations from the HTTP endpoints are sent to.
 // They are lesser priority than in-flight work.
-const pendingQueue = new Queue('mds-sm-pendingQueue');
+const pendingQueue = new Queue(pendingQueueName);
 
 // This is the queue for executions that are currently in flight. We try to get executions
 // that are mid flight out the way before starting "pending" work.
-const inFlightQueue = new Queue('mds-sm-inFlightQueue');
+const inFlightQueue = new Queue(inFlightQueueName);
 
 let running = false;
 const handleAppShutdown = () => { running = false; };
@@ -22,7 +24,7 @@ const handleOpCompleted = (operationId, executionId, runData) => {
   if (runData) {
     const { output, nextOpId, next } = runData;
     logger.verbose(`Operation ${operationId} completed. Output: ${JSON.stringify(output)}.`);
-    repos.updateOperation(operationId, 'Succeeded', output)
+    return repos.updateOperation(operationId, 'Succeeded', output)
       .then(() => next && inFlightQueue.enqueue({ executionId, operationId: nextOpId }))
       .catch((err) => logger.warn('set up next operation failed', err));
   }

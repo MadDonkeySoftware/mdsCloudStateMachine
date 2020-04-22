@@ -1,4 +1,4 @@
-const uuid = require('uuid');
+const globals = require('../../globals');
 
 /**
  * In memory queue implementation. Not for production use!
@@ -15,7 +15,7 @@ function InMemoryQueue(name) {
  */
 InMemoryQueue.prototype.enqueue = function enqueue(item) {
   const message = {
-    id: uuid.v4().replace('-', ''),
+    id: globals.newUuid().replace('-', ''),
     message: JSON.stringify(item),
   };
   return Promise.resolve(this.data.unshift(message));

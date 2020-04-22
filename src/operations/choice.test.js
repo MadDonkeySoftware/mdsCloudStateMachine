@@ -1,6 +1,5 @@
 const chai = require('chai');
 const sinon = require('sinon');
-const uuid = require('uuid');
 
 const globals = require('../globals');
 const enums = require('../enums');
@@ -57,7 +56,7 @@ describe('operations', () => {
       const op = new Choice(definition, metadata);
       const updateOperationStub = this.sandbox.stub(repos, 'updateOperation').resolves();
       const createOperationStub = this.sandbox.stub(repos, 'createOperation').resolves();
-      this.sandbox.stub(uuid, 'v4').returns('nextOpId');
+      this.sandbox.stub(globals, 'newUuid').returns('nextOpId');
 
       // Act
       return op.run().then((result) => {
@@ -91,7 +90,7 @@ describe('operations', () => {
       const updateOperationStub = this.sandbox.stub(repos, 'updateOperation').resolves();
       const createOperationStub = this.sandbox.stub(repos, 'createOperation').resolves();
       const updateExecutionStub = this.sandbox.stub(repos, 'updateExecution').resolves();
-      this.sandbox.stub(uuid, 'v4').returns('nextOpId');
+      this.sandbox.stub(globals, 'newUuid').returns('nextOpId');
 
       // Act
       return op.run().then((result) => {
@@ -115,7 +114,7 @@ describe('operations', () => {
         const op = new Choice(definition, metadata);
         const updateOperationStub = this.sandbox.stub(repos, 'updateOperation').resolves();
         const createOperationStub = this.sandbox.stub(repos, 'createOperation').resolves();
-        this.sandbox.stub(uuid, 'v4').returns('nextOpId');
+        this.sandbox.stub(globals, 'newUuid').returns('nextOpId');
 
         // Act
         return op.run().then((result) => {
@@ -137,7 +136,7 @@ describe('operations', () => {
         const op = new Choice(definition, metadata);
         const updateOperationStub = this.sandbox.stub(repos, 'updateOperation').resolves();
         const createOperationStub = this.sandbox.stub(repos, 'createOperation').resolves();
-        this.sandbox.stub(uuid, 'v4').returns('nextOpId');
+        this.sandbox.stub(globals, 'newUuid').returns('nextOpId');
 
         // Act
         return op.run().then((result) => {
