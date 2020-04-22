@@ -1,4 +1,4 @@
-const got = require('got');
+const mdsSdk = require('@maddonkeysoftware/mds-sdk-node');
 
 /**
  * Queue implementation backed by the MDS simple queue service
@@ -11,67 +11,36 @@ function MdsQueue(name) {
   if (!this.queueHost.endsWith('/')) {
     this.queueHost += '/';
   }
+
+  this.client = mdsSdk.getQueueServiceClient(this.queueHost);
 }
 
 /**
  * Enqueue a new message to be consumed later or elsewhere.
  */
 MdsQueue.prototype.enqueue = function enqueue(message) {
-  const url = `${this.queueHost}queue/${this.name}/message`;
-  const options = {
-    headers: {
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify(message),
-  };
-  return got.post(url, options);
+  return this.client.enqueueMessage(this.name, message);
 };
 
 /**
  * Gets an available message to be processed.
  */
 MdsQueue.prototype.dequeue = function dequeue() {
-  const url = `${this.queueHost}queue/${this.name}/message`;
-  const options = {
-    headers: {
-      'content-type': 'application/json',
-    },
-  };
-  return got.get(url, options).then((resp) => {
-    if (resp.statusCode === 200) {
-      if (resp.body !== '{}') {
-        return JSON.parse(resp.body);
-      }
-    }
-
-    return null;
-  });
+  return this.client.fetchMessage(this.name);
 };
 
 /**
  * Removes a message from the queue
  */
 MdsQueue.prototype.delete = function remove(id) {
-  const url = `${this.queueHost}queue/${this.name}/message/${id}`;
-  const options = {
-    headers: {
-      'content-type': 'application/json',
-    },
-  };
-  return got.delete(url, options);
+  return this.client.deleteMessage(this.name, id);
 };
 
 /**
  * Gets the current length of the queue
  */
 MdsQueue.prototype.size = function size() {
-  const url = `${this.queueHost}queue/${this.name}/length`;
-  const options = {
-    headers: {
-      'content-type': 'application/json',
-    },
-  };
-  return got.get(url, options).then((resp) => resp.size);
+  this.client.getQueueLength(this.name).then((resp) => resp.size);
 };
 
 module.exports = MdsQueue;

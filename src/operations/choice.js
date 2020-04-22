@@ -1,8 +1,6 @@
-const uuid = require('uuid');
-
 const repos = require('../repos');
 const enums = require('../enums');
-const { logger } = require('../globals');
+const globals = require('../globals');
 
 function Choice(definition, metadata) {
   if (definition.Type !== 'Choice') throw new Error(`Attempted to use ${definition.Type} type for "Choice".`);
@@ -109,7 +107,7 @@ function processChoice(that) {
 Choice.prototype.run = function run() {
   this.output = this.input;
 
-  const nextOpId = uuid.v4();
+  const nextOpId = globals.newUuid();
   const {
     operationId,
     executionId,
@@ -135,7 +133,7 @@ Choice.prototype.run = function run() {
       next,
     }))
     .catch((err) => {
-      logger.warn('Failed processing choice step.', { executionId, operationId, err });
+      globals.logger.warn('Failed processing choice step.', { executionId, operationId, err });
       repos.updateOperation(operationId, enums.OP_STATUS.Failed);
       repos.updateExecution(executionId, enums.OP_STATUS.Failed);
     });

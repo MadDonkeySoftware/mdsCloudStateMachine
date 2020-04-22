@@ -1,7 +1,6 @@
 const sqlite = require('sqlite');
-const uuid = require('uuid');
 
-const { logger } = require('../globals');
+const globals = require('../globals');
 const enums = require('../enums');
 
 const createOperationTableSql = `
@@ -62,7 +61,7 @@ const mapTypeForReturn = (typeString, data) => {
     case null:
       return data;
     default:
-      logger.warn('Encountered unknown map type. Returning data as-is.', typeString);
+      globals.logger.warn('Encountered unknown map type. Returning data as-is.', typeString);
       return data;
   }
 };
@@ -93,7 +92,7 @@ const mapTypeForStorage = (data) => {
 let internalDb;
 const getDb = () => {
   if (!internalDb) {
-    logger.debug('Initializing in-memory database');
+    globals.logger.debug('Initializing in-memory database');
 
     const database = sqlite.open(':memory:', { Promise });
 
@@ -103,10 +102,10 @@ const getDb = () => {
         .then(() => dbObj.run(createStateMachineTableSql))
         .then(() => dbObj.run(createExecutionTableSql))
         .then(() => dbObj.run(createOperationTableSql))
-        .then(() => logger.debug('in-memory database initialized.'))
+        .then(() => globals.logger.debug('in-memory database initialized.'))
         .then(() => dbObj)
         .catch((err) => {
-          logger.error('Failed to create database', err);
+          globals.logger.error('Failed to create database', err);
           throw err;
         });
     });
@@ -119,12 +118,12 @@ const getDb = () => {
 const getStateMachines = (db) => db.all('SELECT * FROM StateMachine');
 
 const createStateMachine = (db, id, name, definitionObject) => {
-  const versionId = uuid.v4();
+  const versionId = globals.newUuid();
   return db.run('INSERT INTO StateMachineVersion VALUES ($id, $definition)', { $id: versionId, $definition: JSON.stringify(definitionObject) })
     .then(() => db.run('INSERT INTO StateMachine VALUES ($id, $name, $active_version)', { $id: id, $name: name, $active_version: versionId }));
 };
 const updateStateMachine = (db, id, definitionObject) => {
-  const versionId = uuid.v4();
+  const versionId = globals.newUuid();
   return db.run('INSERT INTO StateMachineVersion VALUES ($id, $definition)', { $id: versionId, $definition: JSON.stringify(definitionObject) })
     .then(() => db.run('UPDATE StateMachine SET active_version = $active_version WHERE id = $id', { $id: id, $active_version: versionId }));
 };
@@ -137,7 +136,7 @@ const getStateMachine = (db, id) => db.get('SELECT * FROM StateMachine WHERE id 
     definition: JSON.parse(data.stateMachineVersion.definition),
   }))
   .catch((err) => {
-    logger.warn('Error during execution', err);
+    globals.logger.warn('Error during execution', err);
   });
 
 const createExecution = (db, id, versionId) => db.run('INSERT INTO Execution VALUES ($id, $created, $status, $version)', {
