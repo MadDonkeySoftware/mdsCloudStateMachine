@@ -13,9 +13,6 @@ function Fail(definition, metadata) {
 
 Fail.prototype.run = function run() {
   this.output = this.input;
-  if (this.output && typeof this.output === 'object') {
-    this.output = this.output;
-  }
 
   const {
     operationId,

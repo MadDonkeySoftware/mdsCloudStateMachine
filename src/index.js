@@ -8,7 +8,7 @@ const app = express();
 const port = 8888;
 
 const requestLogger = (req, res, next) => {
-  logger.verbose(`Handling ${req.path} - ${req.method}`);
+  logger.trace({ path: req.path, method: req.method }, 'Handling request');
   next();
 };
 
@@ -39,4 +39,4 @@ app.use(commonResponseSetup);
 app.use(bodyParser.json());
 configureRoutes(app);
 
-app.listen(port, () => logger.info(`Example app listening on port ${port}!`));
+app.listen(port, () => logger.info({ port }, `Example app listening on port ${port}!`));

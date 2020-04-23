@@ -1,7 +1,7 @@
 const { logger } = require('../globals');
 const internal = require('./internal');
 
-const initializeQueue = (fromHttpApp) => {
+const initializeQueue = () => {
   if (!process.env.FN_SM_Q_URL || process.env.FORCE_INTERNAL_WORKER) {
     logger.warn('Using internal message queue worker. This is not intended for production use.');
     logger.info('Staring in-process queue worker.');

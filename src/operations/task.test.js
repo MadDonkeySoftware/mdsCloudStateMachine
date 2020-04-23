@@ -18,7 +18,9 @@ describe('operations', () => {
 
   beforeEach(() => {
     this.sandbox = sinon.createSandbox();
-    this.sandbox.stub(globals, 'logger');
+
+    // Couldn't get this syntax to work but below did *shrug*: this.sandbox.stub(globals, 'logger');
+    globals.logger = this.sandbox.stub(globals.logger);
   });
 
   afterEach(() => {
