@@ -24,7 +24,7 @@ const updateStateMachine = (request, response) => {
       uuid: id,
     }));
   }).catch((err) => {
-    globals.logger.warn('Error updating state machine', err);
+    globals.logger.warn({ err }, 'Error updating state machine');
     response.status(500);
     response.send();
   });

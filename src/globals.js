@@ -1,10 +1,33 @@
 const uuid = require('uuid');
-const logger = require('./logger');
+const bunyan = require('bunyan');
+const BunyanLogstashHttp = require('./bunyan-logstash-http');
 
 /**
  * returns the current logger for the application
  */
-const activeLogger = logger.buildLogger();
+const loggerMetadata = { fromLocal: process.env.DEBUG };
+const logStreams = [
+  {
+    stream: process.stdout,
+  },
+];
+if (process.env.MDS_LOG_URL) {
+  logStreams.push(
+    {
+      stream: new BunyanLogstashHttp({
+        loggingEndpoint: process.env.MDS_LOG_URL,
+        level: 'debug',
+        metadata: loggerMetadata,
+      }),
+    },
+  );
+}
+const activeLogger = bunyan.createLogger({
+  name: 'mdsCloudStateMachine',
+  level: bunyan.TRACE,
+  serializers: bunyan.stdSerializers,
+  streams: logStreams,
+});
 
 /**
  * Promise wrapper around process.nextTick

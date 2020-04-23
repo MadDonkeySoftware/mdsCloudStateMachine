@@ -20,7 +20,7 @@ const mapTypeForReturn = (typeString, data) => {
     case null:
       return data;
     default:
-      globals.logger.warn('Encountered unknown map type. Returning data as-is.', typeString);
+      globals.logger.warn({ typeString }, 'Encountered unknown map type. Returning data as-is.');
       return data;
   }
 };
@@ -94,7 +94,7 @@ const getDb = () => {
         return internalDb;
       })
       .catch((err) => {
-        globals.logger.error('Failed to create database', err);
+        globals.logger.error({ err }, 'Failed to create database');
         throw err;
       });
   }
@@ -127,7 +127,7 @@ const getStateMachine = (db, id) => db.execute('SELECT * FROM StateMachine WHERE
     definition: JSON.parse(data.stateMachineVersion.definition),
   }))
   .catch((err) => {
-    globals.logger.warn('Error during execution', err);
+    globals.logger.warn({ err }, 'Error during execution');
   });
 
 const createExecution = (db, id, versionId) => db.execute('INSERT INTO Execution VALUES (:id, :created, :status, :version)', {

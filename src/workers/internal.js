@@ -21,13 +21,16 @@ let running = false;
 const handleAppShutdown = () => { running = false; };
 
 const handleOpCompleted = (operationId, executionId, runData) => {
+  logger.trace({ operationId, executionId, runData: runData || 'N/A' }, 'Handling operation completed');
   if (runData) {
     const { output, nextOpId, next } = runData;
-    logger.verbose(`Operation ${operationId} completed. Output: ${JSON.stringify(output)}.`);
+    logger.trace({ operationId, output }, 'Operation completed.');
     return repos.updateOperation(operationId, 'Succeeded', output)
       .then(() => next && inFlightQueue.enqueue({ executionId, operationId: nextOpId }))
-      .catch((err) => logger.warn('set up next operation failed', err));
+      .catch((err) => logger.warn({ err }, 'Set up next operation failed'));
   }
+
+  return Promise.resolve();
 };
 
 const buildOperationDataBundle = (metadata) => (
@@ -43,10 +46,11 @@ const invokeOperation = (data) => {
   repos.updateOperation(operationId, 'Executing')
     .then(() => t.run())
     .then((runData) => handleOpCompleted(operationId, executionId, runData))
-    .catch((err) => logger.warn('operation run failed', err));
+    .catch((err) => logger.warn({ err }, 'operation run failed'));
 };
 
 const processMessage = (message) => {
+  logger.trace({ message }, 'Processing message');
   const event = JSON.parse(message.message);
   if (event.fromInvoke) {
     repos.updateExecution(event.executionId, 'Executing');
@@ -55,7 +59,7 @@ const processMessage = (message) => {
   repos.getOperation(event.operationId)
     .then((operation) => buildOperationDataBundle(operation))
     .then((data) => invokeOperation(data))
-    .catch((err) => logger.warn('process event failed', err));
+    .catch((err) => logger.warn({ err }, 'process event failed'));
 };
 
 const pullMessageFromQueue = (queue, limit, runningData) => {
@@ -127,10 +131,14 @@ const enqueueDelayedMessages = () => {
   }
 };
 
-const enqueueMessage = (message) => pendingQueue.enqueue(message);
+const enqueueMessage = (message) => {
+  logger.trace({ message }, 'Enqueueing message');
+  return pendingQueue.enqueue(message);
+};
 
 const startWorker = () => {
   if (!running) {
+    logger.trace('Starting internal worker.');
     running = true;
     delay(internalQueueInterval).then(() => processMessages());
     delay(internalQueueInterval).then(() => enqueueDelayedMessages());

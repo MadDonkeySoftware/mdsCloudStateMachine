@@ -9,7 +9,9 @@ module.exports = {
     "parserOptions": {
         "ecmaVersion": 2018
     },
-    "rules": { },
+    "rules": {
+        "no-underscore-dangle": "off",
+    },
     "globals": {
         "Atomics": "readonly",
         "SharedArrayBuffer": "readonly"

@@ -18,7 +18,7 @@ const getOperation = (definition, metadata) => {
 
   if (!currentState) {
     const availKeys = Object.keys(definition.States).join(',');
-    logger.error(`currentState appears falsy. stateKey: ${stateKey}; availKeys: ${availKeys};`);
+    logger.error({ stateKey, availKeys }, 'currentState appears falsy.');
   }
 
   switch (currentState.Type) {
