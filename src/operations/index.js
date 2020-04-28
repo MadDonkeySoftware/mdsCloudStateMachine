@@ -1,4 +1,4 @@
-const { logger } = require('../globals');
+const globals = require('../globals');
 const Task = require('./task');
 const Succeed = require('./succeed');
 const Fail = require('./fail');
@@ -6,6 +6,8 @@ const Choice = require('./choice');
 const Wait = require('./wait');
 
 const getOperation = (definition, metadata) => {
+  const logger = globals.getLogger();
+
   if (!definition) {
     logger.error('Definition appears falsy. Insufficient information to find operation.');
   }

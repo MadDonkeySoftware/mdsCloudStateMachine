@@ -1,4 +1,4 @@
-const { logger, delay } = require('../globals');
+const globals = require('../globals');
 const repos = require('../repos');
 const operations = require('../operations');
 const Queue = require('./queue');
@@ -8,6 +8,7 @@ const internalQueueInterval = process.env.QUEUE_INTERVAL || 50;
 const batchProcessingSize = 1;
 const pendingQueueName = process.env.PENDING_QUEUE_NAME || 'mds-sm-pendingQueue';
 const inFlightQueueName = process.env.IN_FLIGHT_QUEUE_NAME || 'mds-sm-inFlightQueue';
+const logger = globals.getLogger();
 
 // This is the general queue that new invocations from the HTTP endpoints are sent to.
 // They are lesser priority than in-flight work.
@@ -109,12 +110,12 @@ const processMessages = () => {
   }
 
   if (running) {
-    delay(internalQueueInterval).then(() => processMessages());
+    globals.delay(internalQueueInterval).then(() => processMessages());
   }
   */
   pullMessageFromQueue(inFlightQueue, batchProcessingSize)
     .then((data) => data.needMore && pullMessageFromQueue(pendingQueue, batchProcessingSize, data))
-    .then(() => running && delay(internalQueueInterval).then(() => processMessages()));
+    .then(() => running && globals.delay(internalQueueInterval).then(() => processMessages()));
 };
 
 const enqueueDelayedMessages = () => {
@@ -127,7 +128,7 @@ const enqueueDelayedMessages = () => {
   });
 
   if (running) {
-    delay(internalQueueInterval).then(() => enqueueDelayedMessages());
+    globals.delay(internalQueueInterval).then(() => enqueueDelayedMessages());
   }
 };
 
@@ -140,8 +141,8 @@ const startWorker = () => {
   if (!running) {
     logger.trace('Starting internal worker.');
     running = true;
-    delay(internalQueueInterval).then(() => processMessages());
-    delay(internalQueueInterval).then(() => enqueueDelayedMessages());
+    globals.delay(internalQueueInterval).then(() => processMessages());
+    globals.delay(internalQueueInterval).then(() => enqueueDelayedMessages());
   }
 };
 

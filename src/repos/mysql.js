@@ -4,6 +4,8 @@ const mysqlParse = require('mysql-parse');
 const globals = require('../globals');
 const enums = require('../enums');
 
+const logger = globals.getLogger();
+
 const mapTypeForReturn = (typeString, data) => {
   switch (typeString) {
     case 'object':
@@ -20,7 +22,7 @@ const mapTypeForReturn = (typeString, data) => {
     case null:
       return data;
     default:
-      globals.logger.warn({ typeString }, 'Encountered unknown map type. Returning data as-is.');
+      logger.warn({ typeString }, 'Encountered unknown map type. Returning data as-is.');
       return data;
   }
 };
@@ -84,7 +86,7 @@ const mapResultSetToObject = (results) => {
 let internalDb;
 const getDb = () => {
   if (!internalDb) {
-    globals.logger.debug('Initializing mysql database');
+    logger.debug('Initializing mysql database');
     const opts = mysqlParse.parseUri(process.env.FN_SM_DB_URL);
     delete opts.scheme;
     return mysql.createConnection(opts)
@@ -94,7 +96,7 @@ const getDb = () => {
         return internalDb;
       })
       .catch((err) => {
-        globals.logger.error({ err }, 'Failed to create database');
+        logger.error({ err }, 'Failed to create database');
         throw err;
       });
   }
@@ -127,7 +129,7 @@ const getStateMachine = (db, id) => db.execute('SELECT * FROM StateMachine WHERE
     definition: JSON.parse(data.stateMachineVersion.definition),
   }))
   .catch((err) => {
-    globals.logger.warn({ err }, 'Error during execution');
+    logger.warn({ err }, 'Error during execution');
   });
 
 const createExecution = (db, id, versionId) => db.execute('INSERT INTO Execution VALUES (:id, :created, :status, :version)', {

@@ -13,33 +13,13 @@ const nameFromLevel = {
   60: 'FATAL',
 };
 
-/**
- * Constructs a new logger object that emits events to Logstash via HTTP or HTTPS
- *
- * @param {Object} [options] An object to override settings of the logger.
- * @param {String} [options.loggingEndpoint] The HTTP/HTTPS logstash host url.
- * @param {Object} [options.metadata] The base set of metadata to send with every log message.
- * @param {Function} [error] Callback for when writing an error out occurs.
- */
-function BunyanLogstashHttp(options, error) {
-  const defaults = {
-    loggingEndpoint: 'http://127.0.0.1:5002',
-  };
-  const settings = _.merge({}, defaults, options);
-
-  this.customFormatter = options.customFormatter;
-  this.error = error || function err() {};
-
-  this._settings = settings;
-  this._parsedUrl = url.parse(this._settings.loggingEndpoint);
-}
-
-BunyanLogstashHttp.prototype._postMessage = function _postMessage(message) {
+const postMessage = function postMessage(settings, message) {
   const data = JSON.stringify(message);
+  const parsedUrl = url.parse(settings.loggingEndpoint);
   const options = {
-    hostname: this._parsedUrl.hostname,
-    port: this._parsedUrl.port,
-    path: this._parsedUrl.path,
+    hostname: parsedUrl.hostname,
+    port: parsedUrl.port,
+    path: parsedUrl.path,
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -47,9 +27,9 @@ BunyanLogstashHttp.prototype._postMessage = function _postMessage(message) {
     },
   };
 
-  const request = this._parsedUrl.protocol === 'https:' ? https.request : http.request;
+  const request = parsedUrl.protocol === 'https:' ? https.request : http.request;
 
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const req = request(options, (res) => {
       const resp = {
         statusCode: res.statusCode,
@@ -60,6 +40,7 @@ BunyanLogstashHttp.prototype._postMessage = function _postMessage(message) {
     req.on('error', (err) => {
       const msg = util.inspect(err, false, null, true);
       process.stderr.write(`${msg}\n`);
+      reject(err);
     });
     req.write(data);
     req.end();
@@ -70,22 +51,19 @@ BunyanLogstashHttp.prototype._postMessage = function _postMessage(message) {
     });
 };
 
-BunyanLogstashHttp.prototype._log = function _log(level, message, metadata) {
-  let meta;
-  if (this._settings.metadata || metadata) {
-    meta = _.merge({}, this._settings.metadata, metadata);
-  }
+const log = (settings, level, message, metadata) => {
+  const meta = _.merge({}, settings.metadata, metadata);
   const timestamp = metadata.time;
-  this._postMessage({
-    '@timestamp': timestamp,
-    logLevel: level,
-    message,
-    ...meta,
-  });
+  return postMessage(settings,
+    {
+      '@timestamp': timestamp,
+      logLevel: level,
+      message,
+      ...meta,
+    });
 };
 
-BunyanLogstashHttp.prototype.write = function write(record) {
-  const self = this;
+const write = (settings, record) => {
   let rec = record;
   let message;
 
@@ -96,16 +74,44 @@ BunyanLogstashHttp.prototype.write = function write(record) {
   const levelName = nameFromLevel[rec.level];
 
   try {
-    message = self.customFormatter
-      ? self.customFormatter(rec, levelName)
+    message = settings.customFormatter
+      ? { msg: settings.customFormatter(rec, levelName) }
       : { msg: rec.msg };
   } catch (err) {
-    return self.error(err);
+    if (settings.error) {
+      return settings.error(err);
+    }
+
+    return Promise.reject(err);
   }
 
   const meta = _.merge({}, rec, message);
   delete meta.msg;
-  return self._log(levelName, message.msg, meta);
+  return log(settings, levelName, message.msg, meta);
 };
 
-module.exports = BunyanLogstashHttp;
+/**
+ * Constructs a new logger object that emits events to Logstash via HTTP or HTTPS
+ *
+ * @param {Object} options An object to override settings of the logger.
+ * @param {String} options.loggingEndpoint The HTTP/HTTPS logstash host url.
+ * @param {Object} [options.metadata] The base set of metadata to send with every log message.
+ * @param {Function} [options.error] Callback for when writing an error out occurs.
+ * @param {Function} [options.customFormatter] method to custom format message.
+ * @returns {Object}
+ */
+const createLoggerStream = (options) => {
+  if (!options || !options.loggingEndpoint) {
+    throw new Error('options.loggingEndpoint is required but was not provided');
+  }
+
+  const boundWrite = write.bind(undefined, options);
+
+  return {
+    write: boundWrite,
+  };
+};
+
+module.exports = {
+  createLoggerStream,
+};

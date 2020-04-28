@@ -133,7 +133,8 @@ Choice.prototype.run = function run() {
       next,
     }))
     .catch((err) => {
-      globals.logger.warn({ executionId, operationId, err }, 'Failed processing choice step.');
+      const logger = globals.getLogger();
+      logger.warn({ executionId, operationId, err }, 'Failed processing choice step.');
       repos.updateOperation(operationId, enums.OP_STATUS.Failed);
       repos.updateExecution(executionId, enums.OP_STATUS.Failed);
     });
