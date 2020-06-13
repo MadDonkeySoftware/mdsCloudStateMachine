@@ -20,7 +20,8 @@ describe('operations', () => {
     this.sandbox = sinon.createSandbox();
 
     // Couldn't get this syntax to work but below did *shrug*: this.sandbox.stub(globals, 'logger');
-    globals.logger = this.sandbox.stub(globals.logger);
+    // globals.logger = this.sandbox.stub(globals.logger);
+    this.sandbox.stub(globals, 'getLogger').returns(sinon.stub());
   });
 
   afterEach(() => {
@@ -111,13 +112,13 @@ describe('operations', () => {
           chai.expect(updateOperationStub.getCalls().length).to.be.equal(2);
           chai.expect(createOperationStub.getCalls().length).to.be.equal(1);
           chai.expect(updateOperationStub.getCall(0).args).to.be.eql(['operationId', enums.OP_STATUS.Executing]);
-          chai.expect(updateOperationStub.getCall(1).args).to.be.eql(['operationId', enums.OP_STATUS.Succeeded, expectedOutput]);
-          chai.expect(createOperationStub.getCall(0).args).to.be.eql(['nextOpId', 'executionId', definition.Next, expectedOutput]);
+          chai.expect(updateOperationStub.getCall(1).args).to.be.eql(['operationId', enums.OP_STATUS.Succeeded, JSON.stringify(expectedOutput)]);
+          chai.expect(createOperationStub.getCall(0).args).to.be.eql(['nextOpId', 'executionId', definition.Next, JSON.stringify(expectedOutput)]);
           chai.expect(updateExecutionStub.getCalls().length).to.be.equal(0);
           chai.expect(thenResult).to.be.eql({
             next: definition.Next,
             nextOpId: 'nextOpId',
-            output: expectedOutput,
+            output: JSON.stringify(expectedOutput),
           });
         });
       });
@@ -154,13 +155,13 @@ describe('operations', () => {
           chai.expect(updateOperationStub.getCalls().length).to.be.equal(2);
           chai.expect(createOperationStub.getCalls().length).to.be.equal(1);
           chai.expect(updateOperationStub.getCall(0).args).to.be.eql(['operationId', enums.OP_STATUS.Executing]);
-          chai.expect(updateOperationStub.getCall(1).args).to.be.eql(['operationId', enums.OP_STATUS.Succeeded, expectedOutput]);
-          chai.expect(createOperationStub.getCall(0).args).to.be.eql(['nextOpId', 'executionId', definition.Next, expectedOutput]);
+          chai.expect(updateOperationStub.getCall(1).args).to.be.eql(['operationId', enums.OP_STATUS.Succeeded, JSON.stringify(expectedOutput)]);
+          chai.expect(createOperationStub.getCall(0).args).to.be.eql(['nextOpId', 'executionId', definition.Next, JSON.stringify(expectedOutput)]);
           chai.expect(updateExecutionStub.getCalls().length).to.be.equal(0);
           chai.expect(thenResult).to.be.eql({
             next: definition.Next,
             nextOpId: 'nextOpId',
-            output: expectedOutput,
+            output: JSON.stringify(expectedOutput),
           });
         });
       });
@@ -197,13 +198,13 @@ describe('operations', () => {
           chai.expect(updateOperationStub.getCalls().length).to.be.equal(2);
           chai.expect(createOperationStub.getCalls().length).to.be.equal(1);
           chai.expect(updateOperationStub.getCall(0).args).to.be.eql(['operationId', enums.OP_STATUS.Executing]);
-          chai.expect(updateOperationStub.getCall(1).args).to.be.eql(['operationId', enums.OP_STATUS.Succeeded, expectedOutput]);
-          chai.expect(createOperationStub.getCall(0).args).to.be.eql(['nextOpId', 'executionId', definition.Next, expectedOutput]);
+          chai.expect(updateOperationStub.getCall(1).args).to.be.eql(['operationId', enums.OP_STATUS.Succeeded, JSON.stringify(expectedOutput)]);
+          chai.expect(createOperationStub.getCall(0).args).to.be.eql(['nextOpId', 'executionId', definition.Next, JSON.stringify(expectedOutput)]);
           chai.expect(updateExecutionStub.getCalls().length).to.be.equal(0);
           chai.expect(thenResult).to.be.eql({
             next: definition.Next,
             nextOpId: 'nextOpId',
-            output: expectedOutput,
+            output: JSON.stringify(expectedOutput),
           });
         });
       });
@@ -240,13 +241,13 @@ describe('operations', () => {
           chai.expect(updateOperationStub.getCalls().length).to.be.equal(2);
           chai.expect(createOperationStub.getCalls().length).to.be.equal(1);
           chai.expect(updateOperationStub.getCall(0).args).to.be.eql(['operationId', enums.OP_STATUS.Executing]);
-          chai.expect(updateOperationStub.getCall(1).args).to.be.eql(['operationId', enums.OP_STATUS.Succeeded, expectedOutput]);
-          chai.expect(createOperationStub.getCall(0).args).to.be.eql(['nextOpId', 'executionId', definition.Next, expectedOutput]);
+          chai.expect(updateOperationStub.getCall(1).args).to.be.eql(['operationId', enums.OP_STATUS.Succeeded, JSON.stringify(expectedOutput)]);
+          chai.expect(createOperationStub.getCall(0).args).to.be.eql(['nextOpId', 'executionId', definition.Next, JSON.stringify(expectedOutput)]);
           chai.expect(updateExecutionStub.getCalls().length).to.be.equal(0);
           chai.expect(thenResult).to.be.eql({
             next: definition.Next,
             nextOpId: 'nextOpId',
-            output: expectedOutput,
+            output: JSON.stringify(expectedOutput),
           });
         });
       });

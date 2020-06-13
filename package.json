@@ -7,7 +7,7 @@
   },
   "main": "index.js",
   "scripts": {
-    "start": "node ./src/index.js",
+    "server": "./bin/server",
     "test": "NODE_ENV=test mocha",
     "test-cov": "NODE_ENV=test nyc mocha",
     "lint": "eslint 'src/**'"
@@ -36,6 +36,7 @@
     "mocha": "^7.1.1",
     "nyc": "^15.0.1",
     "sinon": "^9.0.2",
-    "sinon-chai": "^3.5.0"
+    "sinon-chai": "^3.5.0",
+    "supertest": "^4.0.2"
   }
 }

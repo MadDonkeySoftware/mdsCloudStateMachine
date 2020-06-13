@@ -3,6 +3,8 @@ const sqlite = require('sqlite');
 const globals = require('../globals');
 const enums = require('../enums');
 
+const logger = globals.getLogger();
+
 const createOperationTableSql = `
 CREATE TABLE IF NOT EXISTS Operation (
     id           TEXT PRIMARY KEY,
@@ -61,7 +63,7 @@ const mapTypeForReturn = (typeString, data) => {
     case null:
       return data;
     default:
-      globals.logger.warn({ typeString }, 'Encountered unknown map type. Returning data as-is.');
+      logger.warn({ typeString }, 'Encountered unknown map type. Returning data as-is.');
       return data;
   }
 };
@@ -92,7 +94,7 @@ const mapTypeForStorage = (data) => {
 let internalDb;
 const getDb = () => {
   if (!internalDb) {
-    globals.logger.debug('Initializing in-memory database');
+    logger.debug('Initializing in-memory database');
 
     const database = sqlite.open(':memory:', { Promise });
 
@@ -102,10 +104,10 @@ const getDb = () => {
         .then(() => dbObj.run(createStateMachineTableSql))
         .then(() => dbObj.run(createExecutionTableSql))
         .then(() => dbObj.run(createOperationTableSql))
-        .then(() => globals.logger.debug('in-memory database initialized.'))
+        .then(() => logger.debug('in-memory database initialized.'))
         .then(() => dbObj)
         .catch((err) => {
-          globals.logger.error({ err }, 'Failed to create database');
+          logger.error({ err }, 'Failed to create database');
           throw err;
         });
     });
@@ -136,7 +138,7 @@ const getStateMachine = (db, id) => db.get('SELECT * FROM StateMachine WHERE id 
     definition: JSON.parse(data.stateMachineVersion.definition),
   }))
   .catch((err) => {
-    globals.logger.warn({ err }, 'Error during execution');
+    logger.warn({ err }, 'Error during execution');
   });
 
 const createExecution = (db, id, versionId) => db.run('INSERT INTO Execution VALUES ($id, $created, $status, $version)', {

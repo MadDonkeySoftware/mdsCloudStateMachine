@@ -1,6 +1,8 @@
-const { logger } = require('../globals');
+const globals = require('../globals');
 const repos = require('../repos');
 const workers = require('../workers');
+
+const logger = globals.getLogger();
 
 const exitHandler = (options, exitCode) => {
   if (options.cleanup) logger.trace('cleanup');
@@ -34,7 +36,6 @@ const wire = (onShutdown) => {
   // catches uncaught exceptions
   process.on('uncaughtException', (ex) => {
     logger.error({ err: ex }, 'Unhandled Exception');
-    exitHandler.bind(null, { exit: true, onShutdown });
   });
 };
 

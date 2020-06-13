@@ -4,6 +4,8 @@ const globals = require('../globals');
 const repos = require('../repos');
 const enums = require('../enums');
 
+const logger = globals.getLogger();
+
 function Task(definition, metadata) {
   if (definition.Type !== 'Task') throw new Error(`Attempted to use ${definition.Type} type for "Task".`);
   this.resource = definition.Resource;
@@ -34,7 +36,7 @@ const handleInvokeResponse = (that, response) => {
         const errs = def.ErrorEquals;
         const errNext = def.Next;
         if (errs.length === 1 && errs[0] === 'States.ALL') {
-          globals.logger.trace({ status: response.status, body: response.data }, 'Function invoke failed.');
+          logger.trace({ status: response.status, body: response.data }, 'Function invoke failed.');
           return repos.updateOperation(operationId, enums.OP_STATUS.Failed, input)
             .then(() => errNext && repos.createOperation(nextOpId, executionId, errNext, input))
             .then(() => ({
@@ -76,7 +78,6 @@ const invokeFunction = (resource, body) => {
 };
 
 Task.prototype.run = function run() {
-  const { logger } = globals;
   let body = this.input;
   if (body && typeof body === 'object') {
     body = JSON.stringify(body);

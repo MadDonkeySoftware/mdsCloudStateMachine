@@ -18,7 +18,7 @@ describe('operations', () => {
 
   beforeEach(() => {
     this.sandbox = sinon.createSandbox();
-    this.sandbox.stub(globals, 'logger');
+    this.sandbox.stub(globals, 'getLogger').returns(sinon.stub());
   });
 
   afterEach(() => {

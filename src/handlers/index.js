@@ -1,6 +1,10 @@
+const express = require('express');
+
 const repos = require('../repos');
 const workers = require('../workers');
 const globals = require('../globals');
+
+const router = express.Router();
 
 const listStateMachines = (request, response) => repos.getStateMachines().then((result) => {
   response.send(JSON.stringify(result));
@@ -77,11 +81,11 @@ const getDetailsForExecution = (request, response) => {
   });
 };
 
-module.exports = {
-  listStateMachines,
-  createStateMachine,
-  getStateMachine,
-  invokeStateMachine,
-  getDetailsForExecution,
-  updateStateMachine,
-};
+router.get('/machines', listStateMachines);
+router.post('/machine', createStateMachine);
+router.post('/machine/:id', updateStateMachine);
+router.get('/machine/:id', getStateMachine);
+router.post('/machine/:id/invoke', invokeStateMachine);
+router.get('/execution/:id', getDetailsForExecution);
+
+module.exports = router;
