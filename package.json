@@ -15,8 +15,8 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@maddonkeysoftware/mds-sdk-node": "0.0.5",
-    "axios": "^0.19.2",
+    "@maddonkeysoftware/mds-cloud-sdk-node": "0.0.8",
+    "@maddonkeysoftware/orid-node": "0.0.2",
     "body-parser": "^1.19.0",
     "bunyan": "^1.8.12",
     "express": "^4.17.1",

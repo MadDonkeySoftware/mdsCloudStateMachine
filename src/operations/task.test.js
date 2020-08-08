@@ -1,8 +1,8 @@
 const chai = require('chai');
 const chaiExclude = require('chai-exclude');
 const sinon = require('sinon');
-const axios = require('axios');
 
+const mds = require('@maddonkeysoftware/mds-cloud-sdk-node');
 const globals = require('../globals');
 const enums = require('../enums');
 const repos = require('../repos');
@@ -13,7 +13,7 @@ chai.use(chaiExclude);
 describe('operations', () => {
   const definition = {
     Type: 'Task',
-    Resource: 'http://test.local/invoke/some-method',
+    Resource: 'orid:1::::1:sf:some-id',
   };
 
   beforeEach(() => {
@@ -44,8 +44,14 @@ describe('operations', () => {
       }
     });
 
-    it('Should throw exception when invoke returns non 200.', () => {
+    it('Should throw exception when invoke throws exception.', () => {
       // Arrange
+      const sfClientStub = {
+        invokeFunction: this.sandbox.stub(),
+      };
+      this.sandbox.stub(mds, 'getServerlessFunctionsClient').returns(sfClientStub);
+      sfClientStub.invokeFunction.rejects(new Error('not found'));
+
       definition.Next = { Type: 'Succeed' };
       const metadata = {
         id: 'operationId',
@@ -55,22 +61,17 @@ describe('operations', () => {
       const updateOperationStub = this.sandbox.stub(repos, 'updateOperation').resolves();
       const createOperationStub = this.sandbox.stub(repos, 'createOperation').resolves();
       const updateExecutionStub = this.sandbox.stub(repos, 'updateExecution').resolves();
-      const postStub = this.sandbox.stub(axios, 'post').resolves({ status: 404, data: 'not found' });
       this.sandbox.stub(globals, 'newUuid').returns('nextOpId');
 
       // Act
       return op.run().catch((err) => {
         // Assert
-        chai.expect(postStub.getCalls().length).to.be.equal(1);
-        chai.expect(postStub.getCall(0).args).excluding('validateStatus').to.be.eql([
+        chai.expect(sfClientStub.invokeFunction.getCalls().length).to.be.equal(1);
+        chai.expect(sfClientStub.invokeFunction.getCall(0).args).to.be.eql([
           definition.Resource,
           undefined,
-          {
-            headers: {
-              'content-type': 'application/json',
-            },
-          },
         ]);
+
         chai.expect(updateOperationStub.getCalls().length).to.be.equal(2);
         chai.expect(createOperationStub.getCalls().length).to.be.equal(0);
         chai.expect(updateOperationStub.getCall(0).args).to.be.eql(['operationId', enums.OP_STATUS.Executing]);
@@ -83,6 +84,12 @@ describe('operations', () => {
     describe('Should succeed operation and create next operation', () => {
       it('when input is undefined', () => {
         // Arrange
+        const expectedOutput = { test: 'data' };
+        const sfClientStub = {
+          invokeFunction: this.sandbox.stub(),
+        };
+        this.sandbox.stub(mds, 'getServerlessFunctionsClient').returns(sfClientStub);
+        sfClientStub.invokeFunction.resolves(expectedOutput);
         definition.Next = { Type: 'Succeed' };
         const metadata = {
           id: 'operationId',
@@ -92,22 +99,15 @@ describe('operations', () => {
         const updateOperationStub = this.sandbox.stub(repos, 'updateOperation').resolves();
         const createOperationStub = this.sandbox.stub(repos, 'createOperation').resolves();
         const updateExecutionStub = this.sandbox.stub(repos, 'updateExecution').resolves();
-        const expectedOutput = { test: 'data' };
-        const postStub = this.sandbox.stub(axios, 'post').resolves({ status: 200, data: JSON.stringify(expectedOutput) });
         this.sandbox.stub(globals, 'newUuid').returns('nextOpId');
 
         // Act
         return op.run().then((thenResult) => {
           // Assert
-          chai.expect(postStub.getCalls().length).to.be.equal(1);
-          chai.expect(postStub.getCall(0).args).excluding('validateStatus').to.be.eql([
+          chai.expect(sfClientStub.invokeFunction.getCalls().length).to.be.equal(1);
+          chai.expect(sfClientStub.invokeFunction.getCall(0).args).to.be.eql([
             definition.Resource,
-            undefined,
-            {
-              headers: {
-                'content-type': 'application/json',
-              },
-            },
+            metadata.input,
           ]);
           chai.expect(updateOperationStub.getCalls().length).to.be.equal(2);
           chai.expect(createOperationStub.getCalls().length).to.be.equal(1);
@@ -125,6 +125,12 @@ describe('operations', () => {
 
       it('when input is null', () => {
         // Arrange
+        const expectedOutput = { test: 'data' };
+        const sfClientStub = {
+          invokeFunction: this.sandbox.stub(),
+        };
+        this.sandbox.stub(mds, 'getServerlessFunctionsClient').returns(sfClientStub);
+        sfClientStub.invokeFunction.resolves(expectedOutput);
         definition.Next = { Type: 'Succeed' };
         const metadata = {
           id: 'operationId',
@@ -135,22 +141,15 @@ describe('operations', () => {
         const updateOperationStub = this.sandbox.stub(repos, 'updateOperation').resolves();
         const createOperationStub = this.sandbox.stub(repos, 'createOperation').resolves();
         const updateExecutionStub = this.sandbox.stub(repos, 'updateExecution').resolves();
-        const expectedOutput = { test: 'data' };
-        const postStub = this.sandbox.stub(axios, 'post').resolves({ status: 200, data: JSON.stringify(expectedOutput) });
         this.sandbox.stub(globals, 'newUuid').returns('nextOpId');
 
         // Act
         return op.run().then((thenResult) => {
           // Assert
-          chai.expect(postStub.getCalls().length).to.be.equal(1);
-          chai.expect(postStub.getCall(0).args).excluding('validateStatus').to.be.eql([
+          chai.expect(sfClientStub.invokeFunction.getCalls().length).to.be.equal(1);
+          chai.expect(sfClientStub.invokeFunction.getCall(0).args).to.be.eql([
             definition.Resource,
-            null,
-            {
-              headers: {
-                'content-type': 'application/json',
-              },
-            },
+            metadata.input,
           ]);
           chai.expect(updateOperationStub.getCalls().length).to.be.equal(2);
           chai.expect(createOperationStub.getCalls().length).to.be.equal(1);
@@ -168,6 +167,12 @@ describe('operations', () => {
 
       it('when input is a string', () => {
         // Arrange
+        const expectedOutput = { test: 'data' };
+        const sfClientStub = {
+          invokeFunction: this.sandbox.stub(),
+        };
+        this.sandbox.stub(mds, 'getServerlessFunctionsClient').returns(sfClientStub);
+        sfClientStub.invokeFunction.resolves(expectedOutput);
         definition.Next = { Type: 'Succeed' };
         const metadata = {
           id: 'operationId',
@@ -178,22 +183,15 @@ describe('operations', () => {
         const updateOperationStub = this.sandbox.stub(repos, 'updateOperation').resolves();
         const createOperationStub = this.sandbox.stub(repos, 'createOperation').resolves();
         const updateExecutionStub = this.sandbox.stub(repos, 'updateExecution').resolves();
-        const expectedOutput = { test: 'data' };
-        const postStub = this.sandbox.stub(axios, 'post').resolves({ status: 200, data: JSON.stringify(expectedOutput) });
         this.sandbox.stub(globals, 'newUuid').returns('nextOpId');
 
         // Act
         return op.run().then((thenResult) => {
           // Assert
-          chai.expect(postStub.getCalls().length).to.be.equal(1);
-          chai.expect(postStub.getCall(0).args).excluding('validateStatus').to.be.eql([
+          chai.expect(sfClientStub.invokeFunction.getCalls().length).to.be.equal(1);
+          chai.expect(sfClientStub.invokeFunction.getCall(0).args).to.be.eql([
             definition.Resource,
-            'abc',
-            {
-              headers: {
-                'content-type': 'application/json',
-              },
-            },
+            metadata.input,
           ]);
           chai.expect(updateOperationStub.getCalls().length).to.be.equal(2);
           chai.expect(createOperationStub.getCalls().length).to.be.equal(1);
@@ -211,6 +209,12 @@ describe('operations', () => {
 
       it('when input is a object', () => {
         // Arrange
+        const expectedOutput = { test: 'data' };
+        const sfClientStub = {
+          invokeFunction: this.sandbox.stub(),
+        };
+        this.sandbox.stub(mds, 'getServerlessFunctionsClient').returns(sfClientStub);
+        sfClientStub.invokeFunction.resolves(expectedOutput);
         definition.Next = { Type: 'Succeed' };
         const metadata = {
           id: 'operationId',
@@ -221,22 +225,15 @@ describe('operations', () => {
         const updateOperationStub = this.sandbox.stub(repos, 'updateOperation').resolves();
         const createOperationStub = this.sandbox.stub(repos, 'createOperation').resolves();
         const updateExecutionStub = this.sandbox.stub(repos, 'updateExecution').resolves();
-        const expectedOutput = { test: 'data' };
-        const postStub = this.sandbox.stub(axios, 'post').resolves({ status: 200, data: JSON.stringify(expectedOutput) });
         this.sandbox.stub(globals, 'newUuid').returns('nextOpId');
 
         // Act
         return op.run().then((thenResult) => {
           // Assert
-          chai.expect(postStub.getCalls().length).to.be.equal(1);
-          chai.expect(postStub.getCall(0).args).excluding('validateStatus').to.be.eql([
+          chai.expect(sfClientStub.invokeFunction.getCalls().length).to.be.equal(1);
+          chai.expect(sfClientStub.invokeFunction.getCall(0).args).to.be.eql([
             definition.Resource,
-            '{"testInput":1234}',
-            {
-              headers: {
-                'content-type': 'application/json',
-              },
-            },
+            JSON.stringify(metadata.input),
           ]);
           chai.expect(updateOperationStub.getCalls().length).to.be.equal(2);
           chai.expect(createOperationStub.getCalls().length).to.be.equal(1);
