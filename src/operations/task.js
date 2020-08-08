@@ -1,9 +1,10 @@
-const axios = require('axios');
+const mds = require('@maddonkeysoftware/mds-cloud-sdk-node');
 
 const globals = require('../globals');
 const repos = require('../repos');
 const enums = require('../enums');
 
+mds.initialize();
 const logger = globals.getLogger();
 
 function Task(definition, metadata) {
@@ -17,7 +18,7 @@ function Task(definition, metadata) {
   this.output = undefined;
 }
 
-const handleInvokeResponse = (that, response) => {
+const handleInvokeResponse = (that, result, err) => {
   const {
     next,
     catchDef,
@@ -28,7 +29,7 @@ const handleInvokeResponse = (that, response) => {
   const nextOpId = globals.newUuid();
 
   // TODO: Handle retries / error configurations.
-  if (response.status !== 200) {
+  if (err) {
     // TODO: fnProject does not have a way to return the details of an error when invoking from HTTP
     if (catchDef) {
       for (let i = 0; i < catchDef.length; i += 1) {
@@ -36,7 +37,7 @@ const handleInvokeResponse = (that, response) => {
         const errs = def.ErrorEquals;
         const errNext = def.Next;
         if (errs.length === 1 && errs[0] === 'States.ALL') {
-          logger.trace({ status: response.status, body: response.data }, 'Function invoke failed.');
+          logger.trace({ err }, 'Function invoke failed.');
           return repos.updateOperation(operationId, enums.OP_STATUS.Failed, input)
             .then(() => errNext && repos.createOperation(nextOpId, executionId, errNext, input))
             .then(() => ({
@@ -51,11 +52,11 @@ const handleInvokeResponse = (that, response) => {
     return repos.updateOperation(operationId, enums.OP_STATUS.Failed, input)
       .then(() => repos.updateExecution(executionId, enums.OP_STATUS.Failed))
       .then(() => {
-        throw new Error(response.data);
+        throw err;
       });
   }
 
-  const output = response.data;
+  const output = JSON.stringify(result);
 
   return repos.updateOperation(operationId, enums.OP_STATUS.Succeeded, output)
     .then(() => next && repos.createOperation(nextOpId, executionId, next, output))
@@ -67,14 +68,8 @@ const handleInvokeResponse = (that, response) => {
 };
 
 const invokeFunction = (resource, body) => {
-  const postOptions = {
-    headers: {
-      'content-type': 'application/json',
-    },
-    validateStatus: () => true, // Don't reject on any request
-  };
-
-  return axios.post(resource, body, postOptions);
+  const client = mds.getServerlessFunctionsClient();
+  return client.invokeFunction(resource, body);
 };
 
 Task.prototype.run = function run() {
@@ -87,7 +82,8 @@ Task.prototype.run = function run() {
 
   return repos.updateOperation(this.operationId, enums.OP_STATUS.Executing)
     .then(() => invokeFunction(this.resource, body))
-    .then((resp) => handleInvokeResponse(this, resp));
+    .then((result) => handleInvokeResponse(this, result))
+    .catch((err) => handleInvokeResponse(this, undefined, err));
 };
 
 module.exports = Task;

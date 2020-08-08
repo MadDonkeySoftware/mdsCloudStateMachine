@@ -1,4 +1,4 @@
-const mdsSdk = require('@maddonkeysoftware/mds-sdk-node');
+const mdsSdk = require('@maddonkeysoftware/mds-cloud-sdk-node');
 
 /**
  * Queue implementation backed by the MDS simple queue service

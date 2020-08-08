@@ -9,11 +9,11 @@ describe('src/handlers/index', () => {
   it('provides the root url', () => {
     // Arrange
     const app = src.buildApp();
-    const expectedResult = [{
+    const stateMachines = [{
       id: 1,
       name: 'fooBar',
     }];
-    sinon.stub(repos, 'getStateMachines').resolves(expectedResult);
+    sinon.stub(repos, 'getStateMachines').resolves(stateMachines);
 
     // Act / Assert
     return supertest(app)
@@ -22,7 +22,11 @@ describe('src/handlers/index', () => {
       .expect(200)
       .then((resp) => {
         const body = JSON.parse(resp.text);
-        chai.expect(body).to.eql(expectedResult);
+        chai.expect(body).to.deep.eql([{
+          id: 1,
+          name: 'fooBar',
+          orid: 'orid:1::::1:sm:1',
+        }]);
       });
   });
 });
