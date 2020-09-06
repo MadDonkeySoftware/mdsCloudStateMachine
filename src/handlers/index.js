@@ -9,16 +9,18 @@ const globals = require('../globals');
 const router = express.Router();
 
 const oridBase = {
-  provider: process.env.MDS_FN_PROVIDER_KEY,
+  provider: process.env.MDS_SM_PROVIDER_KEY,
   custom3: 1, // TODO: Implement account
   service: 'sm',
 };
+
+const makeOrid = (resourceId) => orid.v1.generate(_.merge({}, oridBase, { resourceId }));
 
 const listStateMachines = (request, response) => repos.getStateMachines().then((result) => {
   const data = _.map(result, (sm) => _.merge(
     {},
     sm,
-    { orid: orid.v1.generate(_.merge({}, oridBase, { resourceId: sm.id })) },
+    { orid: makeOrid(sm.id) },
   ));
 
   response.send(JSON.stringify(data));
@@ -28,7 +30,7 @@ const createStateMachine = (request, response) => {
   const machineId = globals.newUuid();
   return repos.createStateMachine(machineId, request.body.Name, request.body).then(() => {
     response.send(JSON.stringify({
-      orid: orid.v1.generate(_.merge({}, oridBase, { resourceId: machineId })),
+      orid: makeOrid(machineId),
     }));
   });
 };
@@ -36,12 +38,12 @@ const createStateMachine = (request, response) => {
 const updateStateMachine = (request, response) => {
   const { params, body } = request;
 
-  const inputOrid = orid.v1.isValid(params.id) ? orid.v1.parse(params.id) : undefined;
-  const resourceId = inputOrid ? inputOrid.resourceId : params.id;
+  const inputOrid = orid.v1.parse(params.id);
+  const { resourceId } = inputOrid;
 
   return repos.updateStateMachine(resourceId, body).then(() => {
     response.send(JSON.stringify({
-      uuid: resourceId,
+      orid: makeOrid(resourceId),
     }));
   }).catch((err) => {
     globals.logger.warn({ err }, 'Error updating state machine');
@@ -52,14 +54,16 @@ const updateStateMachine = (request, response) => {
 
 const getStateMachine = (request, response) => {
   const { params } = request;
-  const inputOrid = orid.v1.isValid(params.id) ? orid.v1.parse(params.id) : undefined;
-  const machineId = inputOrid ? inputOrid.resourceId : params.id;
+  // const inputOrid = orid.v1.isValid(params.id) ? orid.v1.parse(params.id) : undefined;
+  // const machineId = inputOrid ? inputOrid.resourceId : params.id;
+  const inputOrid = orid.v1.parse(params.id);
+  const { resourceId } = inputOrid;
 
-  return repos.getStateMachine(machineId).then((machine) => {
+  return repos.getStateMachine(resourceId).then((machine) => {
     if (machine) {
       response.send(JSON.stringify({
         id: machine.id,
-        orid: orid.v1.generate(_.merge({}, oridBase, { resourceId: machine.id })),
+        orid: makeOrid(machine.id),
         name: machine.name,
         definition: machine.definition,
       }));
@@ -75,10 +79,10 @@ const invokeStateMachine = (request, response) => {
   const executionId = globals.newUuid();
   const operationId = globals.newUuid();
 
-  const inputOrid = orid.v1.isValid(params.id) ? orid.v1.parse(params.id) : undefined;
-  const machineId = inputOrid ? inputOrid.resourceId : params.id;
+  const inputOrid = orid.v1.parse(params.id);
+  const { resourceId } = inputOrid;
 
-  return repos.getStateMachine(machineId)
+  return repos.getStateMachine(resourceId)
     .then((machine) => repos.createExecution(executionId, machine.active_version)
       .then(() => repos.createOperation(operationId, executionId, machine.definition.StartAt, body))
       .then(() => workers.enqueueMessage({ executionId, operationId, fromInvoke: true }))
@@ -88,7 +92,7 @@ const invokeStateMachine = (request, response) => {
           orid: orid.v1.generate(_.merge(
             {},
             oridBase,
-            { useSlashSeparator: true, resourceType: machineId, resourceId: executionId },
+            { useSlashSeparator: true, resourceId, resourceRider: executionId },
           )),
         }));
       }));
@@ -97,14 +101,21 @@ const invokeStateMachine = (request, response) => {
 const getDetailsForExecution = (request, response) => {
   const { params } = request;
 
-  const id = params.id + params[0];
-  const inputOrid = orid.v1.isValid(id) ? orid.v1.parse(id) : undefined;
-  const executionId = inputOrid && inputOrid.resourceId ? inputOrid.resourceId : params.id;
+  const inputOrid = orid.v1.parse(params.id + params[0]);
+  const { resourceRider } = inputOrid;
 
-  return repos.getDetailsForExecution(executionId).then((details) => {
+  if (!resourceRider) {
+    response.status(400);
+    response.send();
+    return undefined;
+  }
+
+  return repos.getDetailsForExecution(resourceRider).then((details) => {
     if (details) {
       response.send(JSON.stringify({
-        ...details,
+        orid: params.id + params[0],
+        status: details.status,
+        operations: details.operations,
       }));
     } else {
       response.status(404);
@@ -113,11 +124,24 @@ const getDetailsForExecution = (request, response) => {
   });
 };
 
+const ensureValidOrid = (request, response, next) => {
+  const { params } = request;
+  const id = params[0] ? params.id + params[0] : params.id;
+
+  if (!orid.v1.isValid(id)) {
+    response.status(400);
+    response.send();
+    return undefined;
+  }
+
+  return next();
+};
+
 router.get('/machines', listStateMachines);
 router.post('/machine', createStateMachine);
-router.post('/machine/:id', updateStateMachine);
-router.get('/machine/:id', getStateMachine);
-router.post('/machine/:id/invoke', invokeStateMachine);
-router.get('/execution/:id*', getDetailsForExecution);
+router.post('/machine/:id', ensureValidOrid, updateStateMachine);
+router.get('/machine/:id', ensureValidOrid, getStateMachine);
+router.post('/machine/:id/invoke', ensureValidOrid, invokeStateMachine);
+router.get('/execution/:id*', ensureValidOrid, getDetailsForExecution);
 
 module.exports = router;

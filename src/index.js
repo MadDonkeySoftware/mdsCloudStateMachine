@@ -25,7 +25,7 @@ const buildApp = () => {
       res.send('{"msg":"Hello World!"}');
     });
 
-    expressApp.use('/', handlers);
+    expressApp.use('/v1/', handlers);
   };
 
   app.use(requestLogger);
