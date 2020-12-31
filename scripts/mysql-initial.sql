@@ -10,8 +10,10 @@ CREATE TABLE IF NOT EXISTS `mds-sm`.`StateMachineVersion` (
 
 CREATE TABLE IF NOT EXISTS `mds-sm`.`StateMachine` (
     id             CHAR(36)     PRIMARY KEY,
+    accountId      VARCHAR(255) NOT NULL,
     name           VARCHAR(255) NOT NULL,
     active_version CHAR(36)     NOT NULL,
+    is_deleted     TINYINT(1)   NOT NULL,
   FOREIGN KEY (active_version) REFERENCES `mds-sm`.`StateMachineVersion` (id) ON DELETE CASCADE
 );
 

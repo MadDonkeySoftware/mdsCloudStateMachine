@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS StateMachineVersion (
 const createStateMachineTableSql = `
 CREATE TABLE IF NOT EXISTS StateMachine (
     id             TEXT PRIMARY KEY,
+    account_id     TEXT NOT NULL,
     name           TEXT NOT NULL,
     active_version TEXT NOT NULL,
   FOREIGN KEY (active_version) REFERENCES StateMachineVersion (id) ON DELETE CASCADE
@@ -117,12 +118,17 @@ const getDb = () => {
   return Promise.resolve(db);
 };
 
-const getStateMachines = (db) => db.all('SELECT * FROM StateMachine');
+const getStateMachines = (db, accountId) => db.all('SELECT * FROM StateMachine WHERE account_id = $accountId', { accountId });
 
-const createStateMachine = (db, id, name, definitionObject) => {
+const createStateMachine = (db, id, accountId, name, definitionObject) => {
   const versionId = globals.newUuid();
   return db.run('INSERT INTO StateMachineVersion VALUES ($id, $definition)', { $id: versionId, $definition: JSON.stringify(definitionObject) })
-    .then(() => db.run('INSERT INTO StateMachine VALUES ($id, $name, $active_version)', { $id: id, $name: name, $active_version: versionId }));
+    .then(() => db.run('INSERT INTO StateMachine VALUES ($id, $account_id, $name, $active_version)', {
+      $id: id,
+      $account_id: accountId,
+      $name: name,
+      $active_version: versionId,
+    }));
 };
 const updateStateMachine = (db, id, definitionObject) => {
   const versionId = globals.newUuid();

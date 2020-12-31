@@ -9,12 +9,14 @@ const initializeSqliteDb = () => {
 
   const handleAppShutdown = () => getDb().then((db) => db.close());
 
-  const getStateMachines = () => getDb().then((db) => sqliteDb.getStateMachines(db));
-  const createStateMachine = (id, name, definition) => getDb()
-    .then((db) => sqliteDb.createStateMachine(db, id, name, definition));
+  const getStateMachines = (accountId) => getDb()
+    .then((db) => sqliteDb.getStateMachines(db, accountId));
+  const createStateMachine = (id, accountId, name, definition) => getDb()
+    .then((db) => sqliteDb.createStateMachine(db, id, accountId, name, definition));
   const getStateMachine = (id) => getDb().then((db) => sqliteDb.getStateMachine(db, id));
   const updateStateMachine = (id, definition) => getDb()
     .then((db) => sqliteDb.updateStateMachine(db, id, definition));
+  const removeStateMachine = () => getDb().then(() => undefined); // HACK: Sqlite3 to be deprecated.
 
   const createExecution = (id, versionId) => (
     getDb().then((db) => sqliteDb.createExecution(db, id, versionId)));
@@ -42,6 +44,7 @@ const initializeSqliteDb = () => {
     createStateMachine,
     getStateMachine,
     updateStateMachine,
+    removeStateMachine,
     createExecution,
     updateExecution,
     getExecution,
@@ -60,12 +63,15 @@ const initializeMysqlDb = () => {
 
   const handleAppShutdown = () => getDb().then((db) => db.close());
 
-  const getStateMachines = () => getDb().then((db) => mysqlDb.getStateMachines(db));
-  const createStateMachine = (id, name, definition) => getDb()
-    .then((db) => mysqlDb.createStateMachine(db, id, name, definition));
+  const getStateMachines = (accountId) => getDb()
+    .then((db) => mysqlDb.getStateMachines(db, accountId));
+  const createStateMachine = (id, accountId, name, definition) => getDb()
+    .then((db) => mysqlDb.createStateMachine(db, id, accountId, name, definition));
   const getStateMachine = (id) => getDb().then((db) => mysqlDb.getStateMachine(db, id));
   const updateStateMachine = (id, definition) => getDb()
     .then((db) => mysqlDb.updateStateMachine(db, id, definition));
+  const removeStateMachine = (id) => getDb()
+    .then((db) => mysqlDb.removeStateMachine(db, id));
 
   const createExecution = (id, versionId) => (
     getDb().then((db) => mysqlDb.createExecution(db, id, versionId)));
@@ -93,6 +99,7 @@ const initializeMysqlDb = () => {
     createStateMachine,
     getStateMachine,
     updateStateMachine,
+    removeStateMachine,
     createExecution,
     updateExecution,
     getExecution,

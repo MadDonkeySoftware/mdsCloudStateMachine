@@ -1,11 +1,24 @@
 const supertest = require('supertest');
 const sinon = require('sinon');
 const chai = require('chai');
+const jwt = require('jsonwebtoken');
 
 const src = require('..');
 const repos = require('../repos');
+const handlerHelpers = require('./handler-helpers');
 
 describe('src/handlers/index', () => {
+  beforeEach(() => {
+    sinon.stub(handlerHelpers, 'getIssuer').returns('testIssuer');
+    sinon.stub(handlerHelpers, 'getAppPublicSignature').resolves('publicSignature');
+    sinon.stub(jwt, 'verify').returns({
+      payload: {
+        iss: 'testIssuer',
+        accountId: '1',
+      },
+    });
+  });
+
   afterEach(() => {
     sinon.restore();
   });
@@ -17,10 +30,10 @@ describe('src/handlers/index', () => {
     // Act / Assert
     return supertest(app)
       .get('/v1/machine/test')
-      .expect('content-type', /application\/json/)
+      .set('token', 'testToken')
       .expect(400)
       .then((resp) => {
-        chai.expect(resp.text).to.eql('');
+        chai.expect(resp.text).to.eql('resource not understood');
       });
   });
 
@@ -37,6 +50,7 @@ describe('src/handlers/index', () => {
       // Act / Assert
       return supertest(app)
         .get('/v1/machines')
+        .set('token', 'testToken')
         .expect('content-type', /application\/json/)
         .expect(200)
         .then((resp) => {
@@ -44,7 +58,7 @@ describe('src/handlers/index', () => {
           chai.expect(body).to.deep.eql([{
             id: 1,
             name: 'fooBar',
-            orid: 'orid:1:mdsCloud:::1:sm:1',
+            orid: 'orid:1::::1:sm:1',
           }]);
         });
     });
@@ -63,14 +77,14 @@ describe('src/handlers/index', () => {
       // Act / Assert
       return supertest(app)
         .get('/v1/machine/orid:1:mdsCloud:::1:sm:test')
+        .set('token', 'testToken')
         .expect('content-type', /application\/json/)
         .expect(200)
         .then((resp) => {
           const body = JSON.parse(resp.text);
           chai.expect(body).to.deep.eql({
-            id: 'test',
             name: 'fooBar',
-            orid: 'orid:1:mdsCloud:::1:sm:test',
+            orid: 'orid:1::::1:sm:test',
           });
         });
     });

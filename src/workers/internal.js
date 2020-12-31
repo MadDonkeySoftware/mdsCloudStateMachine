@@ -1,3 +1,4 @@
+const mdsSdk = require('@maddonkeysoftware/mds-cloud-sdk-node');
 const globals = require('../globals');
 const repos = require('../repos');
 const operations = require('../operations');
@@ -56,6 +57,8 @@ const processMessage = (message) => {
   if (event.fromInvoke) {
     repos.updateExecution(event.executionId, 'Executing');
   }
+
+  // TODO: Check to see if execution is cancelled.
 
   repos.getOperation(event.operationId)
     .then((operation) => buildOperationDataBundle(operation))
@@ -140,6 +143,14 @@ const enqueueMessage = (message) => {
 const startWorker = () => {
   if (!running) {
     logger.trace('Starting internal worker.');
+    mdsSdk.initialize({
+      identityUrl: process.env.MDS_IDENTITY_URL,
+      account: process.env.MDS_SM_SYS_ACCOUNT,
+      userId: process.env.MDS_SM_SYS_USER,
+      password: process.env.MDS_SM_SYS_PASSWORD,
+      sfUrl: process.env.MDS_SM_SF_URL,
+      qsUrl: process.env.MDS_SM_QS_URL,
+    });
     running = true;
     globals.delay(internalQueueInterval).then(() => processMessages());
     globals.delay(internalQueueInterval).then(() => enqueueDelayedMessages());

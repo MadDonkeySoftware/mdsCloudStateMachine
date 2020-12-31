@@ -4,7 +4,6 @@ const globals = require('../globals');
 const repos = require('../repos');
 const enums = require('../enums');
 
-mds.initialize();
 const logger = globals.getLogger();
 
 function Task(definition, metadata) {
@@ -69,6 +68,7 @@ const handleInvokeResponse = (that, result, err) => {
 
 const invokeFunction = (resource, body) => {
   const client = mds.getServerlessFunctionsClient();
+  // TODO: Retry logic
   return client.invokeFunction(resource, body);
 };
 
