@@ -105,13 +105,19 @@ const getDb = () => {
   return Promise.resolve(db);
 };
 
-const getStateMachines = (db) => db.execute('SELECT * FROM StateMachine')
+const getStateMachines = (db, accountId) => db.execute('SELECT * FROM StateMachine WHERE account_id = :accountId AND is_deleted = 0', { accountId })
   .then((result) => mapResultSetToArray(result));
 
-const createStateMachine = (db, id, name, definitionObject) => {
+const createStateMachine = (db, id, accountId, name, definitionObject) => {
   const versionId = globals.newUuid();
   return db.execute('INSERT INTO StateMachineVersion VALUES (:id, :definition)', { id: versionId, definition: JSON.stringify(definitionObject) })
-    .then(() => db.execute('INSERT INTO StateMachine VALUES (:id, :name, :active_version)', { id, name, active_version: versionId }));
+    .then(() => db.execute('INSERT INTO StateMachine VALUES (:id, :account_id, :name, :active_version, :is_deleted)', {
+      id,
+      account_id: accountId,
+      name,
+      active_version: versionId,
+      is_deleted: 0,
+    }));
 };
 
 const updateStateMachine = (db, id, definitionObject) => {
@@ -120,7 +126,9 @@ const updateStateMachine = (db, id, definitionObject) => {
     .then(() => db.execute('UPDATE StateMachine SET active_version = :active_version WHERE id = :id', { id, active_version: versionId }));
 };
 
-const getStateMachine = (db, id) => db.execute('SELECT * FROM StateMachine WHERE id = :id', { id })
+const removeStateMachine = (db, id) => db.execute('UPDATE StateMachine SET is_deleted = 1 WHERE id = :id', { id });
+
+const getStateMachine = (db, id) => db.execute('SELECT * FROM StateMachine WHERE id = :id AND is_deleted = 0', { id })
   .then((results) => mapResultSetToObject(results))
   .then((stateMachine) => db.execute('SELECT * FROM StateMachineVersion WHERE id = :id', { id: stateMachine.active_version })
     .then((results) => ({ stateMachine, stateMachineVersion: mapResultSetToObject(results) })))
@@ -227,6 +235,7 @@ module.exports = {
   getDb,
   getStateMachines,
   createStateMachine,
+  removeStateMachine,
   getStateMachine,
   updateStateMachine,
   createExecution,

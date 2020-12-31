@@ -5,45 +5,58 @@ const _ = require('lodash');
 const repos = require('../repos');
 const workers = require('../workers');
 const globals = require('../globals');
+const handlerHelpers = require('./handler-helpers');
 
 const router = express.Router();
+const logger = globals.getLogger();
 
 const oridBase = {
-  provider: process.env.MDS_SM_PROVIDER_KEY,
-  custom3: 1, // TODO: Implement account
+  provider: handlerHelpers.getIssuer(),
   service: 'sm',
 };
 
-const makeOrid = (resourceId) => orid.v1.generate(_.merge({}, oridBase, { resourceId }));
+const makeOrid = (resourceId, accountId, rider) => orid.v1.generate(_.merge({}, oridBase, {
+  resourceId,
+  custom3: accountId,
+  resourceRider: rider,
+  useSlashSeparator: true,
+}));
 
-const listStateMachines = (request, response) => repos.getStateMachines().then((result) => {
-  const data = _.map(result, (sm) => _.merge(
-    {},
-    sm,
-    { orid: makeOrid(sm.id) },
-  ));
 
-  response.send(JSON.stringify(data));
-});
+const listStateMachines = (request, response) => {
+  const { accountId } = request.parsedToken.payload;
+  return repos.getStateMachines(accountId).then((result) => {
+    const data = _.map(result, (sm) => _.merge(
+      {},
+      sm,
+      { orid: makeOrid(sm.id, accountId) },
+    ));
 
-const createStateMachine = (request, response) => {
-  const machineId = globals.newUuid();
-  return repos.createStateMachine(machineId, request.body.Name, request.body).then(() => {
-    response.send(JSON.stringify({
-      orid: makeOrid(machineId),
-    }));
+    handlerHelpers.sendResponse(response, 200, JSON.stringify(data));
   });
 };
 
-const updateStateMachine = (request, response) => {
-  const { params, body } = request;
+const createStateMachine = (request, response) => {
+  const { accountId } = request.parsedToken.payload;
+  const machineId = globals.newUuid();
+  return repos.createStateMachine(machineId, accountId, request.body.Name, request.body)
+    .then(() => {
+      response.send(JSON.stringify({
+        orid: makeOrid(machineId, accountId),
+      }));
+    });
+};
 
-  const inputOrid = orid.v1.parse(params.id);
-  const { resourceId } = inputOrid;
+const updateStateMachine = (request, response) => {
+  const { body } = request;
+
+  const requestOrid = handlerHelpers.getOridFromRequest(request, 'orid');
+  const { resourceId } = requestOrid;
+  const accountId = requestOrid.custom3;
 
   return repos.updateStateMachine(resourceId, body).then(() => {
     response.send(JSON.stringify({
-      orid: makeOrid(resourceId),
+      orid: makeOrid(resourceId, accountId),
     }));
   }).catch((err) => {
     globals.logger.warn({ err }, 'Error updating state machine');
@@ -52,18 +65,39 @@ const updateStateMachine = (request, response) => {
   });
 };
 
+const removeStateMachine = (request, response) => {
+  const requestOrid = handlerHelpers.getOridFromRequest(request, 'orid');
+  const { resourceId } = requestOrid;
+  const accountId = requestOrid.custom3;
+
+  return repos.getStateMachine(resourceId).then((machine) => {
+    if (machine) {
+      return repos.removeStateMachine(resourceId).then(() => {
+        response.send(JSON.stringify({
+          orid: makeOrid(resourceId, accountId),
+        }));
+      }).catch((err) => {
+        globals.logger.warn({ err }, 'Error updating state machine');
+        response.status(500);
+        response.send();
+      });
+    }
+
+    response.status(404);
+    response.send();
+    return undefined;
+  });
+};
+
 const getStateMachine = (request, response) => {
-  const { params } = request;
-  // const inputOrid = orid.v1.isValid(params.id) ? orid.v1.parse(params.id) : undefined;
-  // const machineId = inputOrid ? inputOrid.resourceId : params.id;
-  const inputOrid = orid.v1.parse(params.id);
-  const { resourceId } = inputOrid;
+  const requestOrid = handlerHelpers.getOridFromRequest(request, 'orid');
+  const { resourceId } = requestOrid;
+  const accountId = requestOrid.custom3;
 
   return repos.getStateMachine(resourceId).then((machine) => {
     if (machine) {
       response.send(JSON.stringify({
-        id: machine.id,
-        orid: makeOrid(machine.id),
+        orid: makeOrid(machine.id, accountId),
         name: machine.name,
         definition: machine.definition,
       }));
@@ -75,34 +109,41 @@ const getStateMachine = (request, response) => {
 };
 
 const invokeStateMachine = (request, response) => {
-  const { params, body } = request;
+  const { body } = request;
   const executionId = globals.newUuid();
   const operationId = globals.newUuid();
 
-  const inputOrid = orid.v1.parse(params.id);
-  const { resourceId } = inputOrid;
+  const requestOrid = handlerHelpers.getOridFromRequest(request, 'orid');
+  const { resourceId } = requestOrid;
+  const accountId = requestOrid.custom3;
 
   return repos.getStateMachine(resourceId)
-    .then((machine) => repos.createExecution(executionId, machine.active_version)
-      .then(() => repos.createOperation(operationId, executionId, machine.definition.StartAt, body))
-      .then(() => workers.enqueueMessage({ executionId, operationId, fromInvoke: true }))
-      .then(() => {
-        response.send(JSON.stringify({
-          id: executionId,
-          orid: orid.v1.generate(_.merge(
-            {},
-            oridBase,
-            { useSlashSeparator: true, resourceId, resourceRider: executionId },
-          )),
-        }));
-      }));
+    .then((machine) => {
+      if (machine) {
+        return repos.createExecution(executionId, machine.active_version)
+          .then(() => repos.createOperation(
+            operationId,
+            executionId,
+            machine.definition.StartAt,
+            body,
+          ))
+          .then(() => workers.enqueueMessage({ executionId, operationId, fromInvoke: true }))
+          .then(() => {
+            response.send(JSON.stringify({
+              orid: makeOrid(resourceId, accountId, executionId),
+            }));
+          });
+      }
+      response.status(404);
+      response.send();
+      return undefined;
+    });
 };
 
 const getDetailsForExecution = (request, response) => {
-  const { params } = request;
-
-  const inputOrid = orid.v1.parse(params.id + params[0]);
-  const { resourceRider } = inputOrid;
+  const requestOrid = handlerHelpers.getOridFromRequest(request, 'orid');
+  const { resourceId, resourceRider } = requestOrid;
+  const accountId = requestOrid.custom3;
 
   if (!resourceRider) {
     response.status(400);
@@ -113,7 +154,7 @@ const getDetailsForExecution = (request, response) => {
   return repos.getDetailsForExecution(resourceRider).then((details) => {
     if (details) {
       response.send(JSON.stringify({
-        orid: params.id + params[0],
+        orid: makeOrid(resourceId, accountId, resourceRider),
         status: details.status,
         operations: details.operations,
       }));
@@ -124,24 +165,36 @@ const getDetailsForExecution = (request, response) => {
   });
 };
 
-const ensureValidOrid = (request, response, next) => {
-  const { params } = request;
-  const id = params[0] ? params.id + params[0] : params.id;
-
-  if (!orid.v1.isValid(id)) {
-    response.status(400);
-    response.send();
-    return undefined;
-  }
-
-  return next();
-};
-
-router.get('/machines', listStateMachines);
-router.post('/machine', createStateMachine);
-router.post('/machine/:id', ensureValidOrid, updateStateMachine);
-router.get('/machine/:id', ensureValidOrid, getStateMachine);
-router.post('/machine/:id/invoke', ensureValidOrid, invokeStateMachine);
-router.get('/execution/:id*', ensureValidOrid, getDetailsForExecution);
+router.get('/machines',
+  handlerHelpers.validateToken(logger),
+  listStateMachines);
+router.post('/machine',
+  handlerHelpers.validateToken(logger),
+  createStateMachine);
+router.post('/machine/:orid',
+  handlerHelpers.validateToken(logger),
+  handlerHelpers.ensureRequestOrid(false, 'orid'),
+  handlerHelpers.canAccessResource({ oridKey: 'orid', logger }),
+  updateStateMachine);
+router.delete('/machine/:orid',
+  handlerHelpers.validateToken(logger),
+  handlerHelpers.ensureRequestOrid(false, 'orid'),
+  handlerHelpers.canAccessResource({ oridKey: 'orid', logger }),
+  removeStateMachine);
+router.get('/machine/:orid',
+  handlerHelpers.validateToken(logger),
+  handlerHelpers.ensureRequestOrid(false, 'orid'),
+  handlerHelpers.canAccessResource({ oridKey: 'orid', logger }),
+  getStateMachine);
+router.post('/machine/:orid/invoke',
+  handlerHelpers.validateToken(logger),
+  handlerHelpers.ensureRequestOrid(false, 'orid'),
+  handlerHelpers.canAccessResource({ oridKey: 'orid', logger }),
+  invokeStateMachine);
+router.get('/execution/:orid*',
+  handlerHelpers.validateToken(logger),
+  handlerHelpers.ensureRequestOrid(true, 'orid'),
+  handlerHelpers.canAccessResource({ oridKey: 'orid', logger }),
+  getDetailsForExecution);
 
 module.exports = router;
