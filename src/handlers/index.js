@@ -22,7 +22,6 @@ const makeOrid = (resourceId, accountId, rider) => orid.v1.generate(_.merge({}, 
   useSlashSeparator: true,
 }));
 
-
 const listStateMachines = (request, response) => {
   const { accountId } = request.parsedToken.payload;
   return repos.getStateMachines(accountId).then((result) => {
