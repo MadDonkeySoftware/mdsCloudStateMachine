@@ -2,6 +2,10 @@
 
 mdsCloudStateMachine is a FaaS, Functions as a Service, agnostic application that attempts to mirror the functionality provided by AWS Step Functions upon various FaaS implementations. This project attempts to adhere to the [Amazon States Language](https://docs.aws.amazon.com/step-functions/latest/dg/concepts-amazon-states-language.html) as closely as possible in the event that one may eventually migrate their mdsCloudStateMachine definition and FaaS code to the AWS infrastructure in the future.
 
+## Upgrade Notes
+
+* Skip `mongodb 3.6.4` [b/c of error](https://stackoverflow.com/questions/66049860/cannot-connect-to-mongodb-because-of-wrong-uri)
+
 ## FaaS Support
 
 | FaaS Implementation                        | Support Level  |
