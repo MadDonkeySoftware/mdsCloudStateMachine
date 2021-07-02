@@ -1,0 +1,50 @@
+#!/usr/bin/env node
+const mdsSdk = require('@maddonkeysoftware/mds-cloud-sdk-node');
+
+const src = require('../src');
+const globals = require('../src/globals');
+
+const directive = process.argv[2];
+const logger = globals.getLogger();
+
+const launchServer = () => {
+  mdsSdk.initialize({
+    identityUrl: process.env.MDS_IDENTITY_URL,
+    account: process.env.MDS_SM_SYS_ACCOUNT,
+    userId: process.env.MDS_SM_SYS_USER,
+    password: process.env.MDS_SM_SYS_PASSWORD,
+    sfUrl: process.env.MDS_SM_SF_URL,
+    qsUrl: process.env.MDS_SM_QS_URL,
+  });
+
+  const port = process.env.APP_PORT || 8888;
+  const app = src.buildApp();
+
+  app.listen(port, () => logger.info(`Example app listening on port ${port}!`));
+};
+
+const launchWorker = () => {
+
+};
+
+const commandLookup = {
+  server: launchServer,
+  worker: launchWorker,
+};
+
+const displayHelp = () => {
+  const availableCommands = Object.keys(commandLookup).join(', ');
+  logger.error(`Could not launch ${directive}. Available commands are ${availableCommands}`);
+};
+
+if (directive) {
+  const cmd = directive.toLowerCase();
+  const launcher = commandLookup[cmd];
+  if (launcher) {
+    launcher();
+  } else {
+    displayHelp();
+  }
+} else {
+  displayHelp();
+}

@@ -114,6 +114,8 @@ const initializeMysqlDb = () => {
 };
 
 const initializeDatabase = () => {
+  // TODO: Depricate sqlite and mysql
+  // TODO: Implement mongodb
   if (!process.env.FN_SM_DB_URL || process.env.FN_SM_DB_URL.startsWith('sqlite3://')) {
     return initializeSqliteDb();
   }
