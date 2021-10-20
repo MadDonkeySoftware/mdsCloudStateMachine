@@ -2,7 +2,7 @@ const chai = require('chai');
 const chaiExclude = require('chai-exclude');
 const sinon = require('sinon');
 
-const mds = require('@maddonkeysoftware/mds-cloud-sdk-node');
+const mdsSdk = require('@maddonkeysoftware/mds-cloud-sdk-node');
 const globals = require('../globals');
 const enums = require('../enums');
 const repos = require('../repos');
@@ -49,7 +49,7 @@ describe('operations', () => {
       const sfClientStub = {
         invokeFunction: this.sandbox.stub(),
       };
-      this.sandbox.stub(mds, 'getServerlessFunctionsClient').returns(sfClientStub);
+      this.sandbox.stub(mdsSdk, 'getServerlessFunctionsClient').returns(sfClientStub);
       sfClientStub.invokeFunction.rejects(new Error('not found'));
 
       definition.Next = { Type: 'Succeed' };
@@ -88,7 +88,7 @@ describe('operations', () => {
         const sfClientStub = {
           invokeFunction: this.sandbox.stub(),
         };
-        this.sandbox.stub(mds, 'getServerlessFunctionsClient').returns(sfClientStub);
+        this.sandbox.stub(mdsSdk, 'getServerlessFunctionsClient').returns(sfClientStub);
         sfClientStub.invokeFunction.resolves(expectedOutput);
         definition.Next = { Type: 'Succeed' };
         const metadata = {
@@ -129,7 +129,7 @@ describe('operations', () => {
         const sfClientStub = {
           invokeFunction: this.sandbox.stub(),
         };
-        this.sandbox.stub(mds, 'getServerlessFunctionsClient').returns(sfClientStub);
+        this.sandbox.stub(mdsSdk, 'getServerlessFunctionsClient').returns(sfClientStub);
         sfClientStub.invokeFunction.resolves(expectedOutput);
         definition.Next = { Type: 'Succeed' };
         const metadata = {
@@ -171,7 +171,7 @@ describe('operations', () => {
         const sfClientStub = {
           invokeFunction: this.sandbox.stub(),
         };
-        this.sandbox.stub(mds, 'getServerlessFunctionsClient').returns(sfClientStub);
+        this.sandbox.stub(mdsSdk, 'getServerlessFunctionsClient').returns(sfClientStub);
         sfClientStub.invokeFunction.resolves(expectedOutput);
         definition.Next = { Type: 'Succeed' };
         const metadata = {
@@ -213,7 +213,7 @@ describe('operations', () => {
         const sfClientStub = {
           invokeFunction: this.sandbox.stub(),
         };
-        this.sandbox.stub(mds, 'getServerlessFunctionsClient').returns(sfClientStub);
+        this.sandbox.stub(mdsSdk, 'getServerlessFunctionsClient').returns(sfClientStub);
         sfClientStub.invokeFunction.resolves(expectedOutput);
         definition.Next = { Type: 'Succeed' };
         const metadata = {

@@ -1,4 +1,4 @@
-const mds = require('@maddonkeysoftware/mds-cloud-sdk-node');
+const mdsSdk = require('@maddonkeysoftware/mds-cloud-sdk-node');
 
 const globals = require('../globals');
 const repos = require('../repos');
@@ -66,8 +66,8 @@ const handleInvokeResponse = (that, result, err) => {
     }));
 };
 
-const invokeFunction = (resource, body) => {
-  const client = mds.getServerlessFunctionsClient();
+const invokeFunction = async (resource, body) => {
+  const client = await mdsSdk.getServerlessFunctionsClient();
   // TODO: Retry logic
   return client.invokeFunction(resource, body);
 };

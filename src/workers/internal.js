@@ -140,10 +140,10 @@ const enqueueMessage = (message) => {
   return pendingQueue.enqueue(message);
 };
 
-const startWorker = () => {
+const startWorker = async () => {
   if (!running) {
     logger.trace('Starting internal worker.');
-    mdsSdk.initialize({
+    await mdsSdk.initialize({
       identityUrl: process.env.MDS_IDENTITY_URL,
       account: process.env.MDS_SM_SYS_ACCOUNT,
       userId: process.env.MDS_SM_SYS_USER,
