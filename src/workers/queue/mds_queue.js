@@ -12,7 +12,9 @@ function MdsQueue(name) {
     this.queueHost += '/';
   }
 
-  this.client = mdsSdk.getQueueServiceClient(this.queueHost);
+  mdsSdk.getQueueServiceClient(this.queueHost).then((client) => {
+    this.client = client;
+  });
 }
 
 /**
