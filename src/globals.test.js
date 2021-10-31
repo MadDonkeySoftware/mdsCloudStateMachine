@@ -3,7 +3,7 @@ const chai = require('chai');
 
 const globals = require('./globals');
 
-describe('globals', () => {
+describe(__filename, () => {
   describe('getLogger', () => {
     it('Returns a logger', () => {
       // Act
@@ -70,6 +70,28 @@ describe('globals', () => {
 
       // Assert
       chai.expect(newId).to.match(regex);
+    });
+  });
+
+  describe('getEnvVar', () => {
+    it('returns whatever value the environment variable has', () => {
+      // Arrange
+      const expected = new Date().toISOString();
+      process.env.TEST_ENVIRONMENT_VARIABLE = expected;
+
+      // Act
+      const value = globals.getEnvVar('TEST_ENVIRONMENT_VARIABLE');
+
+      // Assert
+      chai.expect(value).to.equal(expected);
+    });
+
+    it('returns default value when the environment variable is empty', () => {
+      // Act
+      const value = globals.getEnvVar('TEST_ENVIRONMENT_VARIABLE_2');
+
+      // Assert
+      chai.expect(value).to.equal(undefined);
     });
   });
 });

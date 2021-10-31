@@ -7,12 +7,8 @@ const mdsSdk = require('@maddonkeysoftware/mds-cloud-sdk-node');
  */
 function MdsQueue(name) {
   this.name = name;
-  this.queueHost = process.env.FN_SM_Q_URL.replace('mdsqs://', 'https://').replace('mdsq://', 'http://');
-  if (!this.queueHost.endsWith('/')) {
-    this.queueHost += '/';
-  }
 
-  mdsSdk.getQueueServiceClient(this.queueHost).then((client) => {
+  mdsSdk.getQueueServiceClient().then((client) => {
     this.client = client;
   });
 }

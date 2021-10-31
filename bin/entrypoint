@@ -3,12 +3,14 @@ const mdsSdk = require('@maddonkeysoftware/mds-cloud-sdk-node');
 
 const src = require('../src');
 const globals = require('../src/globals');
+const worker = require('../src/workers');
+const appShutdown = require('../src/handlers/app_shutdown');
 
 const directive = process.argv[2];
 const logger = globals.getLogger();
 
-const launchServer = () => {
-  mdsSdk.initialize({
+const launchServer = async () => {
+  await mdsSdk.initialize({
     identityUrl: process.env.MDS_IDENTITY_URL,
     account: process.env.MDS_SM_SYS_ACCOUNT,
     userId: process.env.MDS_SM_SYS_USER,
@@ -16,6 +18,7 @@ const launchServer = () => {
     sfUrl: process.env.MDS_SM_SF_URL,
     qsUrl: process.env.MDS_SM_QS_URL,
   });
+  appShutdown.wire();
 
   const port = process.env.APP_PORT || 8888;
   const app = src.buildApp();
@@ -23,8 +26,18 @@ const launchServer = () => {
   app.listen(port, () => logger.info(`Example app listening on port ${port}!`));
 };
 
-const launchWorker = () => {
+const launchWorker = async () => {
+  await mdsSdk.initialize({
+    identityUrl: process.env.MDS_IDENTITY_URL,
+    account: process.env.MDS_SM_SYS_ACCOUNT,
+    userId: process.env.MDS_SM_SYS_USER,
+    password: process.env.MDS_SM_SYS_PASSWORD,
+    sfUrl: process.env.MDS_SM_SF_URL,
+    qsUrl: process.env.MDS_SM_QS_URL,
+  });
+  appShutdown.wire(worker.handleAppShutdown);
 
+  worker.startWorker();
 };
 
 const commandLookup = {

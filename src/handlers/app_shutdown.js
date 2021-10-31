@@ -1,25 +1,22 @@
 const globals = require('../globals');
 const repos = require('../repos');
-const workers = require('../workers');
+// const workers = require('../workers');
 
 const logger = globals.getLogger();
 
-const exitHandler = (options, exitCode) => {
+const exitHandler = async (options, exitCode) => {
   if (options.cleanup) logger.trace('cleanup');
   if (options.exitCode || exitCode === 0) logger.trace({ exitCode }, `ExitCode: ${exitCode}`);
   if (options.exit) {
-    Promise.resolve(logger.info('Shutting down.'))
-      .then(() => repos.handleAppShutdown())
-      .then(() => workers.handleAppShutdown())
-      .then(() => {
-        if (options.onShutdown) {
-          const ret = options.onShutdown();
-          if (ret && ret.then) return ret;
-        }
-        return Promise.resolve();
-      })
-      .then(() => process.exit());
+    logger.info('Shutting down.');
+    await repos.handleAppShutdown();
+    if (options.onShutdown) {
+      const ret = options.onShutdown();
+      if (ret && ret.then) return ret;
+    }
+    process.exit();
   }
+  return undefined;
 };
 
 const wire = (onShutdown) => {
