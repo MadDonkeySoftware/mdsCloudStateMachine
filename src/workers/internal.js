@@ -1,7 +1,8 @@
+const mdsSdk = require('@maddonkeysoftware/mds-cloud-sdk-node');
+
 const globals = require('../globals');
 const repos = require('../repos');
 const operations = require('../operations');
-const Queue = require('./queue');
 const enums = require('../enums');
 
 const internalQueueInterval = process.env.QUEUE_INTERVAL || 50;
@@ -10,16 +11,9 @@ const logger = globals.getLogger();
 
 const self = {
   /**
-   * This is the general queue that new invocations from the HTTP endpoints are sent to.
-   * They are lesser priority than in-flight work.
+   * The mds queue client used for queue interactions.
    */
-  _pendingQueue: undefined,
-
-  /**
-   * This is the queue for executions that are currently in flight. We try to get executions
-   * that are mid flight out the way before starting "pending" work.
-   */
-  _inFlightQueue: undefined,
+  _queueClient: undefined,
 
   /**
    * Indicator for if messages should continue to be processed.
@@ -39,7 +33,8 @@ const self = {
       try {
         await repos.updateOperation(operationId, 'Succeeded', output);
         if (next) {
-          await self._inFlightQueue.enqueue({ executionId, operationId: nextOpId });
+          const message = { executionId, operationId: nextOpId };
+          await self._queueClient.enqueueMessage(globals.getEnvVar('IN_FLIGHT_QUEUE_NAME'), message);
         }
       } catch (err) {
         logger.warn({ err }, 'Set up next operation failed');
@@ -88,19 +83,19 @@ const self = {
     return undefined;
   },
 
-  _pullMessageFromQueue: async (queue, limit, runningData) => {
+  _pullMessageFromQueue: async (queueOrid, limit, runningData) => {
     const data = runningData || { count: 0 };
 
     try {
       if (data.count < limit) {
-        const message = await queue.dequeue();
+        const message = await self._queueClient.fetchMessage(queueOrid);
         if (message) {
           // TODO: Deleting the message here may not be the best idea.
           // Entertain moving it to processMessage.
-          await queue.delete(message.id);
+          await self._queueClient.deleteMessage(queueOrid, message.id);
           self._processMessage(message);
           data.count += 1;
-          return self._pullMessageFromQueue(queue, limit, data);
+          return self._pullMessageFromQueue(queueOrid, limit, data);
         }
         data.needMore = true;
       }
@@ -114,31 +109,17 @@ const self = {
   },
 
   _processMessages: async () => {
-    /*
-    let count = 0;
-    if (inFlightQueue.size() > 0) {
-      while (count < batchProcessingSize && inFlightQueue.size() > 0) {
-        const message = inFlightQueue.dequeue();
-        processMessage(message);
-        count += 1;
-      }
-    }
+    const data = await self._pullMessageFromQueue(
+      globals.getEnvVar('IN_FLIGHT_QUEUE_NAME'),
+      batchProcessingSize,
+    );
 
-    if (pendingQueue.size() > 0) {
-      while (count < batchProcessingSize && pendingQueue.size() > 0) {
-        const message = pendingQueue.dequeue();
-        processMessage(message);
-        count += 1;
-      }
-    }
-
-    if (running) {
-      globals.delay(internalQueueInterval).then(() => processMessages());
-    }
-    */
-    const data = await self._pullMessageFromQueue(self._inFlightQueue, batchProcessingSize);
     if (data.needMore) {
-      await self._pullMessageFromQueue(self._pendingQueue, batchProcessingSize, data);
+      await self._pullMessageFromQueue(
+        globals.getEnvVar('PENDING_QUEUE_NAME'),
+        batchProcessingSize,
+        data,
+      );
     }
 
     if (self._running) {
@@ -147,23 +128,25 @@ const self = {
     }
   },
 
-  _enqueueDelayedMessages: () => {
-    repos.getDelayedOperations(new Date().toISOString()).then((allDelayed) => {
-      allDelayed.forEach((delayed) => repos.updateOperation(delayed.id, enums.OP_STATUS.Pending)
-        .then(() => self._inFlightQueue.enqueue({
+  _enqueueDelayedMessages: async () => {
+    const allDelayed = await repos.getDelayedOperations(new Date().toISOString());
+    allDelayed.forEach((delayed) => repos.updateOperation(delayed.id, enums.OP_STATUS.Pending)
+      .then(() => self._queueClient.enqueueMessage(
+        globals.getEnvVar('IN_FLIGHT_QUEUE_NAME'),
+        {
           executionId: delayed.execution,
           operationId: delayed.id,
-        })));
-    });
+        },
+      )));
 
     if (self._running) {
       globals.delay(internalQueueInterval).then(() => self._enqueueDelayedMessages());
     }
   },
 
-  enqueueMessage: (message) => {
+  enqueueMessage: async (message) => {
     logger.trace({ message }, 'Enqueueing message');
-    return self._pendingQueue.enqueue(message);
+    return self._client.enqueueMessage(globals.getEnvVar('PENDING_QUEUE_NAME'), message);
   },
 
   /**
@@ -173,9 +156,16 @@ const self = {
     if (!self._running) {
       logger.info('Starting worker.');
 
+      if (!globals.getEnvVar('PENDING_QUEUE_NAME')) {
+        throw new Error('Pending queue ORID missing. Please set environment variable PENDING_QUEUE_NAME');
+      }
+
+      if (!globals.getEnvVar('IN_FLIGHT_QUEUE_NAME')) {
+        throw new Error('Pending queue ORID missing. Please set environment variable IN_FLIGHT_QUEUE_NAME');
+      }
+
       self._running = true;
-      self._pendingQueue = new Queue(globals.getEnvVar('PENDING_QUEUE_NAME', 'mds-sm-pendingQueue'));
-      self._inFlightQueue = new Queue(globals.getEnvVar('IN_FLIGHT_QUEUE_NAME', 'mds-sm-inFlightQueue'));
+      self._queueClient = await mdsSdk.getQueueServiceClient();
 
       globals.delay(internalQueueInterval).then(() => self._processMessages());
       globals.delay(internalQueueInterval).then(() => self._enqueueDelayedMessages());

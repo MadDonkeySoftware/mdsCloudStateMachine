@@ -32,8 +32,8 @@ describe(__filename, () => {
         nextOpId: 'nextOpId',
         next: 'nextOpName',
       };
-      internal._inFlightQueue = {
-        enqueue: sinon.stub().resolves(),
+      internal._queueClient = {
+        enqueueMessage: sinon.stub().resolves(),
       };
       sinon.stub(repos, 'updateOperation').resolves();
 
@@ -41,7 +41,7 @@ describe(__filename, () => {
       await internal._handleOpCompleted('testOp', 'testExec', testRunData);
 
       // Assert
-      chai.expect(internal._inFlightQueue.enqueue.callCount).to.equal(1);
+      chai.expect(internal._queueClient.enqueueMessage.callCount).to.equal(1);
       chai.expect(repos.updateOperation.callCount).to.equal(1);
     });
 
@@ -50,8 +50,8 @@ describe(__filename, () => {
       const testRunData = { // TODO: Figure out if these are accurate
         output: 'test output',
       };
-      internal._inFlightQueue = {
-        enqueue: sinon.stub().resolves(),
+      internal._queueClient = {
+        enqueueMessage: sinon.stub().resolves(),
       };
       sinon.stub(repos, 'updateOperation').resolves();
 
@@ -59,15 +59,15 @@ describe(__filename, () => {
       await internal._handleOpCompleted('testOp', 'testExec', testRunData);
 
       // Assert
-      chai.expect(internal._inFlightQueue.enqueue.callCount).to.equal(0);
+      chai.expect(internal._queueClient.enqueueMessage.callCount).to.equal(0);
       chai.expect(repos.updateOperation.callCount).to.equal(1);
     });
 
     it('Without run data does nothing', async () => {
       // Arrange
       const testRunData = undefined;
-      internal._inFlightQueue = {
-        enqueue: sinon.stub().resolves(),
+      internal._queueClient = {
+        enqueueMessage: sinon.stub().resolves(),
       };
       sinon.stub(repos, 'updateOperation').resolves();
 
@@ -75,7 +75,7 @@ describe(__filename, () => {
       await internal._handleOpCompleted('testOp', 'testExec', testRunData);
 
       // Assert
-      chai.expect(internal._inFlightQueue.enqueue.callCount).to.equal(0);
+      chai.expect(internal._queueClient.enqueueMessage.callCount).to.equal(0);
       chai.expect(repos.updateOperation.callCount).to.equal(0);
     });
   });

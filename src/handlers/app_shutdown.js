@@ -1,6 +1,5 @@
 const globals = require('../globals');
 const repos = require('../repos');
-// const workers = require('../workers');
 
 const logger = globals.getLogger();
 
@@ -14,6 +13,7 @@ const exitHandler = async (options, exitCode) => {
       const ret = options.onShutdown();
       if (ret && ret.then) return ret;
     }
+    // TODO: Should this be here?
     process.exit();
   }
   return undefined;
