@@ -10,10 +10,15 @@ const Wait = require('./wait');
 chai.use(chaiExclude);
 
 describe('operations', () => {
-  const buildWait = (overrides) => _.merge({}, {
-    Type: 'Wait',
-    Resource: 'orid:1::::1:sf:some-id',
-  }, overrides);
+  const buildWait = (overrides) =>
+    _.merge(
+      {},
+      {
+        Type: 'Wait',
+        Resource: 'orid:1::::1:sf:some-id',
+      },
+      overrides,
+    );
 
   beforeEach(() => {
     this.sandbox = sinon.createSandbox();
@@ -39,7 +44,9 @@ describe('operations', () => {
       try {
         Wait.call({}, { Type: 'Task' }, metadata);
       } catch (err) {
-        chai.expect(err.message).to.be.equal('Attempted to use Task type for "Wait".');
+        chai
+          .expect(err.message)
+          .to.be.equal('Attempted to use Task type for "Wait".');
       }
     });
 
@@ -52,7 +59,9 @@ describe('operations', () => {
       };
       const op = new Wait(definition, metadata);
       this.sandbox.stub(repos, 'getOperation').resolves({});
-      this.sandbox.stub(repos, 'delayOperation').rejects(new Error('test error'));
+      this.sandbox
+        .stub(repos, 'delayOperation')
+        .rejects(new Error('test error'));
 
       // Act
       return op.run().catch((err) => {

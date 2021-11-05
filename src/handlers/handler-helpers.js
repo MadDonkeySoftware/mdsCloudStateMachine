@@ -10,7 +10,11 @@ const getIssuer = () => process.env.ORID_PROVIDER_KEY;
 
 const getAppPublicSignature = async () => {
   if (!SIGNATURE) {
-    const url = urlJoin(process.env.MDS_IDENTITY_URL || 'http://localhost', 'v1', 'publicSignature');
+    const url = urlJoin(
+      process.env.MDS_IDENTITY_URL || 'http://localhost',
+      'v1',
+      'publicSignature',
+    );
     const resp = await axios.get(url);
     SIGNATURE = _.get(resp, ['data', 'signature']);
   }
@@ -47,7 +51,11 @@ const validateToken = (logger) => async (request, response, next) => {
   const { headers } = request;
   const { token } = headers;
   if (!token) {
-    return sendResponse(response, 403, 'Please include authentication token in header "token"');
+    return sendResponse(
+      response,
+      403,
+      'Please include authentication token in header "token"',
+    );
   }
 
   try {
@@ -57,7 +65,8 @@ const validateToken = (logger) => async (request, response, next) => {
     if (parsedToken && parsedToken.payload.iss === module.exports.getIssuer()) {
       request.parsedToken = parsedToken;
     } else {
-      if (logger) logger.debug({ token: parsedToken }, 'Invalid token detected.');
+      if (logger)
+        logger.debug({ token: parsedToken }, 'Invalid token detected.');
       return sendResponse(response, 403);
     }
   } catch (err) {
@@ -78,22 +87,28 @@ const ensureRequestOrid = (withRider, key) => (request, response, next) => {
   return next();
 };
 
-const canAccessResource = ({ oridKey, logger }) => (request, response, next) => {
-  const reqOrid = getOridFromRequest(request, oridKey);
+const canAccessResource =
+  ({ oridKey, logger }) =>
+  (request, response, next) => {
+    const reqOrid = getOridFromRequest(request, oridKey);
 
-  const tokenAccountId = _.get(request, ['parsedToken', 'payload', 'accountId']);
-  if (tokenAccountId !== reqOrid.custom3 && tokenAccountId !== '1') {
-    if (logger) {
-      logger.debug(
-        { tokenAccountId, requestAccount: reqOrid.custom3 },
-        'Insufficient privilege for request',
-      );
+    const tokenAccountId = _.get(request, [
+      'parsedToken',
+      'payload',
+      'accountId',
+    ]);
+    if (tokenAccountId !== reqOrid.custom3 && tokenAccountId !== '1') {
+      if (logger) {
+        logger.debug(
+          { tokenAccountId, requestAccount: reqOrid.custom3 },
+          'Insufficient privilege for request',
+        );
+      }
+      return sendResponse(response, 403);
     }
-    return sendResponse(response, 403);
-  }
 
-  return next();
-};
+    return next();
+  };
 
 module.exports = {
   getIssuer,

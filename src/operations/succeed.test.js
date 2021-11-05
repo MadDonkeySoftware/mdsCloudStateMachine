@@ -30,7 +30,9 @@ describe('operations', () => {
       try {
         Succeed.call({}, { Type: 'Task' }, metadata);
       } catch (err) {
-        chai.expect(err.message).to.be.equal('Attempted to use Task type for "Succeed".');
+        chai
+          .expect(err.message)
+          .to.be.equal('Attempted to use Task type for "Succeed".');
       }
     });
 
@@ -42,16 +44,24 @@ describe('operations', () => {
           execution: 'executionId',
         };
         const op = new Succeed(definition, metadata);
-        const updateOperationStub = this.sandbox.stub(repos, 'updateOperation').resolves();
-        const updateExecutionStub = this.sandbox.stub(repos, 'updateExecution').resolves();
+        const updateOperationStub = this.sandbox
+          .stub(repos, 'updateOperation')
+          .resolves();
+        const updateExecutionStub = this.sandbox
+          .stub(repos, 'updateExecution')
+          .resolves();
 
         // Act
         return op.run().then(() => {
           // Assert
           chai.expect(updateOperationStub.getCalls().length).to.be.equal(1);
           chai.expect(updateExecutionStub.getCalls().length).to.be.equal(1);
-          chai.expect(updateOperationStub.getCall(0).args).to.be.eql(['operationId', enums.OP_STATUS.Succeeded, undefined]);
-          chai.expect(updateExecutionStub.getCall(0).args).to.be.eql(['executionId', enums.OP_STATUS.Succeeded]);
+          chai
+            .expect(updateOperationStub.getCall(0).args)
+            .to.be.eql(['operationId', enums.OP_STATUS.Succeeded, undefined]);
+          chai
+            .expect(updateExecutionStub.getCall(0).args)
+            .to.be.eql(['executionId', enums.OP_STATUS.Succeeded]);
         });
       });
 
@@ -63,16 +73,24 @@ describe('operations', () => {
           input: null,
         };
         const op = new Succeed(definition, metadata);
-        const updateOperationStub = this.sandbox.stub(repos, 'updateOperation').resolves();
-        const updateExecutionStub = this.sandbox.stub(repos, 'updateExecution').resolves();
+        const updateOperationStub = this.sandbox
+          .stub(repos, 'updateOperation')
+          .resolves();
+        const updateExecutionStub = this.sandbox
+          .stub(repos, 'updateExecution')
+          .resolves();
 
         // Act
         return op.run().then(() => {
           // Assert
           chai.expect(updateOperationStub.getCalls().length).to.be.equal(1);
           chai.expect(updateExecutionStub.getCalls().length).to.be.equal(1);
-          chai.expect(updateOperationStub.getCall(0).args).to.be.eql(['operationId', enums.OP_STATUS.Succeeded, null]);
-          chai.expect(updateExecutionStub.getCall(0).args).to.be.eql(['executionId', enums.OP_STATUS.Succeeded]);
+          chai
+            .expect(updateOperationStub.getCall(0).args)
+            .to.be.eql(['operationId', enums.OP_STATUS.Succeeded, null]);
+          chai
+            .expect(updateExecutionStub.getCall(0).args)
+            .to.be.eql(['executionId', enums.OP_STATUS.Succeeded]);
         });
       });
 
@@ -84,16 +102,24 @@ describe('operations', () => {
           input: 'abc',
         };
         const op = new Succeed(definition, metadata);
-        const updateOperationStub = this.sandbox.stub(repos, 'updateOperation').resolves();
-        const updateExecutionStub = this.sandbox.stub(repos, 'updateExecution').resolves();
+        const updateOperationStub = this.sandbox
+          .stub(repos, 'updateOperation')
+          .resolves();
+        const updateExecutionStub = this.sandbox
+          .stub(repos, 'updateExecution')
+          .resolves();
 
         // Act
         return op.run().then(() => {
           // Assert
           chai.expect(updateOperationStub.getCalls().length).to.be.equal(1);
           chai.expect(updateExecutionStub.getCalls().length).to.be.equal(1);
-          chai.expect(updateOperationStub.getCall(0).args).to.be.eql(['operationId', enums.OP_STATUS.Succeeded, 'abc']);
-          chai.expect(updateExecutionStub.getCall(0).args).to.be.eql(['executionId', enums.OP_STATUS.Succeeded]);
+          chai
+            .expect(updateOperationStub.getCall(0).args)
+            .to.be.eql(['operationId', enums.OP_STATUS.Succeeded, 'abc']);
+          chai
+            .expect(updateExecutionStub.getCall(0).args)
+            .to.be.eql(['executionId', enums.OP_STATUS.Succeeded]);
         });
       });
 
@@ -105,16 +131,28 @@ describe('operations', () => {
           input: { a: 1, b: 2 },
         };
         const op = new Succeed(definition, metadata);
-        const updateOperationStub = this.sandbox.stub(repos, 'updateOperation').resolves();
-        const updateExecutionStub = this.sandbox.stub(repos, 'updateExecution').resolves();
+        const updateOperationStub = this.sandbox
+          .stub(repos, 'updateOperation')
+          .resolves();
+        const updateExecutionStub = this.sandbox
+          .stub(repos, 'updateExecution')
+          .resolves();
 
         // Act
         return op.run().then(() => {
           // Assert
           chai.expect(updateOperationStub.getCalls().length).to.be.equal(1);
           chai.expect(updateExecutionStub.getCalls().length).to.be.equal(1);
-          chai.expect(updateOperationStub.getCall(0).args).to.be.eql(['operationId', enums.OP_STATUS.Succeeded, metadata.input]);
-          chai.expect(updateExecutionStub.getCall(0).args).to.be.eql(['executionId', enums.OP_STATUS.Succeeded]);
+          chai
+            .expect(updateOperationStub.getCall(0).args)
+            .to.be.eql([
+              'operationId',
+              enums.OP_STATUS.Succeeded,
+              metadata.input,
+            ]);
+          chai
+            .expect(updateExecutionStub.getCall(0).args)
+            .to.be.eql(['executionId', enums.OP_STATUS.Succeeded]);
         });
       });
     });

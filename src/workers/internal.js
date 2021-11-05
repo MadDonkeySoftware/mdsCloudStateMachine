@@ -23,10 +23,15 @@ const self = {
   /**
    * Handles gracefully telling child processes to stop.
    */
-  handleAppShutdown: () => { self._running = false; },
+  handleAppShutdown: () => {
+    self._running = false;
+  },
 
   _handleOpCompleted: async (operationId, executionId, runData) => {
-    logger.trace({ operationId, executionId, runData: runData || 'N/A' }, 'Handling operation completed');
+    logger.trace(
+      { operationId, executionId, runData: runData || 'N/A' },
+      'Handling operation completed',
+    );
     if (runData) {
       const { output, nextOpId, next } = runData;
       logger.trace({ operationId, output }, 'Operation completed.');
@@ -34,7 +39,10 @@ const self = {
         await repos.updateOperation(operationId, 'Succeeded', output);
         if (next) {
           const message = { executionId, operationId: nextOpId };
-          await self._queueClient.enqueueMessage(globals.getEnvVar('IN_FLIGHT_QUEUE_NAME'), message);
+          await self._queueClient.enqueueMessage(
+            globals.getEnvVar('IN_FLIGHT_QUEUE_NAME'),
+            message,
+          );
         }
       } catch (err) {
         logger.warn({ err }, 'Set up next operation failed');
@@ -45,7 +53,9 @@ const self = {
   },
 
   _buildOperationDataBundle: async (metadata) => {
-    const definition = await repos.getStateMachineDefinitionForExecution(metadata.execution);
+    const definition = await repos.getStateMachineDefinitionForExecution(
+      metadata.execution,
+    );
     return { metadata, definition };
   },
 
@@ -129,24 +139,34 @@ const self = {
   },
 
   _enqueueDelayedMessages: async () => {
-    const allDelayed = await repos.getDelayedOperations(new Date().toISOString());
-    allDelayed.forEach((delayed) => repos.updateOperation(delayed.id, enums.OP_STATUS.Pending)
-      .then(() => self._queueClient.enqueueMessage(
-        globals.getEnvVar('IN_FLIGHT_QUEUE_NAME'),
-        {
-          executionId: delayed.execution,
-          operationId: delayed.id,
-        },
-      )));
+    const allDelayed = await repos.getDelayedOperations(
+      new Date().toISOString(),
+    );
+    allDelayed.forEach((delayed) =>
+      repos.updateOperation(delayed.id, enums.OP_STATUS.Pending).then(() =>
+        self._queueClient.enqueueMessage(
+          globals.getEnvVar('IN_FLIGHT_QUEUE_NAME'),
+          {
+            executionId: delayed.execution,
+            operationId: delayed.id,
+          },
+        ),
+      ),
+    );
 
     if (self._running) {
-      globals.delay(internalQueueInterval).then(() => self._enqueueDelayedMessages());
+      globals
+        .delay(internalQueueInterval)
+        .then(() => self._enqueueDelayedMessages());
     }
   },
 
   enqueueMessage: async (message) => {
     logger.trace({ message }, 'Enqueueing message');
-    return self._client.enqueueMessage(globals.getEnvVar('PENDING_QUEUE_NAME'), message);
+    return self._client.enqueueMessage(
+      globals.getEnvVar('PENDING_QUEUE_NAME'),
+      message,
+    );
   },
 
   /**
@@ -157,18 +177,24 @@ const self = {
       logger.info('Starting worker.');
 
       if (!globals.getEnvVar('PENDING_QUEUE_NAME')) {
-        throw new Error('Pending queue ORID missing. Please set environment variable PENDING_QUEUE_NAME');
+        throw new Error(
+          'Pending queue ORID missing. Please set environment variable PENDING_QUEUE_NAME',
+        );
       }
 
       if (!globals.getEnvVar('IN_FLIGHT_QUEUE_NAME')) {
-        throw new Error('Pending queue ORID missing. Please set environment variable IN_FLIGHT_QUEUE_NAME');
+        throw new Error(
+          'Pending queue ORID missing. Please set environment variable IN_FLIGHT_QUEUE_NAME',
+        );
       }
 
       self._running = true;
       self._queueClient = await mdsSdk.getQueueServiceClient();
 
       globals.delay(internalQueueInterval).then(() => self._processMessages());
-      globals.delay(internalQueueInterval).then(() => self._enqueueDelayedMessages());
+      globals
+        .delay(internalQueueInterval)
+        .then(() => self._enqueueDelayedMessages());
     }
   },
 };

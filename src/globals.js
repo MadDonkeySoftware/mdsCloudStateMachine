@@ -4,7 +4,6 @@ const bunyan = require('bunyan');
 const bunyanLogstashHttp = require('./bunyan-logstash-http');
 
 const self = {
-
   buildLogStreams: () => {
     const loggerMetadata = { fromLocal: self.getEnvVar('DEBUG') };
     const logStreams = [];
@@ -16,15 +15,13 @@ const self = {
     }
 
     if (self.getEnvVar('MDS_LOG_URL')) {
-      logStreams.push(
-        {
-          stream: bunyanLogstashHttp.createLoggerStream({
-            loggingEndpoint: self.getEnvVar('MDS_LOG_URL'),
-            level: 'debug',
-            metadata: loggerMetadata,
-          }),
-        },
-      );
+      logStreams.push({
+        stream: bunyanLogstashHttp.createLoggerStream({
+          loggingEndpoint: self.getEnvVar('MDS_LOG_URL'),
+          level: 'debug',
+          metadata: loggerMetadata,
+        }),
+      });
     }
 
     return logStreams;

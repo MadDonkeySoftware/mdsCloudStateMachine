@@ -27,7 +27,8 @@ describe(__filename, () => {
   describe('_handleOpCompleted', () => {
     it('With run data and next operation queues next op and updates current op', async () => {
       // Arrange
-      const testRunData = { // TODO: Figure out if these are accurate
+      const testRunData = {
+        // TODO: Figure out if these are accurate
         output: 'test output',
         nextOpId: 'nextOpId',
         next: 'nextOpName',
@@ -47,7 +48,8 @@ describe(__filename, () => {
 
     it('With run data but without next queues updates current op', async () => {
       // Arrange
-      const testRunData = { // TODO: Figure out if these are accurate
+      const testRunData = {
+        // TODO: Figure out if these are accurate
         output: 'test output',
       };
       internal._queueClient = {
@@ -93,8 +95,10 @@ describe(__filename, () => {
         d: 'data',
       };
 
-      sinon.stub(repos, 'getStateMachineDefinitionForExecution')
-        .withArgs('testExecution').resolves(mockDefinition);
+      sinon
+        .stub(repos, 'getStateMachineDefinitionForExecution')
+        .withArgs('testExecution')
+        .resolves(mockDefinition);
 
       // Act
       const data = await internal._buildOperationDataBundle(testMeta);
@@ -117,7 +121,9 @@ describe(__filename, () => {
       };
       const stubRunData = { run: 'data' };
       const updateOpStub = sinon.stub(repos, 'updateOperation');
-      const opCompletedStub = sinon.stub(internal, '_handleOpCompleted').resolves();
+      const opCompletedStub = sinon
+        .stub(internal, '_handleOpCompleted')
+        .resolves();
       sinon.stub(operations, 'getOperation').returns({
         run: sinon.stub().resolves(stubRunData),
       });
@@ -128,8 +134,12 @@ describe(__filename, () => {
       // Assert
       chai.expect(updateOpStub.callCount).to.equal(1);
       chai.expect(opCompletedStub.callCount).to.equal(1);
-      chai.expect(updateOpStub.getCall(0).args).to.deep.equal(['testId', 'Executing']);
-      chai.expect(opCompletedStub.getCall(0).args).to.deep.equal(['testId', 'testExecution', stubRunData]);
+      chai
+        .expect(updateOpStub.getCall(0).args)
+        .to.deep.equal(['testId', 'Executing']);
+      chai
+        .expect(opCompletedStub.getCall(0).args)
+        .to.deep.equal(['testId', 'testExecution', stubRunData]);
     });
   });
 });

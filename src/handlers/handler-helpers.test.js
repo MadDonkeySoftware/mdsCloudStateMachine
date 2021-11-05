@@ -13,10 +13,13 @@ describe('globals', () => {
       process.env.MDS_IDENTITY_URL = 'http://127.0.0.1:1234';
       const url = `${process.env.MDS_IDENTITY_URL}/v1/publicSignature`;
       const getStub = sinon.stub(axios, 'get');
-      getStub.withArgs(url).resolves({ data: { signature: 'public-signature' } });
+      getStub
+        .withArgs(url)
+        .resolves({ data: { signature: 'public-signature' } });
 
       // Act
-      return handlerHelpers.getAppPublicSignature()
+      return handlerHelpers
+        .getAppPublicSignature()
         .then((signature) => {
           // Assert
           chai.expect(signature).to.be.equal('public-signature');
