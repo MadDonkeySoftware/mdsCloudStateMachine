@@ -40,7 +40,9 @@ describe('operations', () => {
       try {
         Task.call({}, { Type: 'Succeed' }, metadata);
       } catch (err) {
-        chai.expect(err.message).to.be.equal('Attempted to use Succeed type for "Task".');
+        chai
+          .expect(err.message)
+          .to.be.equal('Attempted to use Succeed type for "Task".');
       }
     });
 
@@ -49,7 +51,9 @@ describe('operations', () => {
       const sfClientStub = {
         invokeFunction: this.sandbox.stub(),
       };
-      this.sandbox.stub(mdsSdk, 'getServerlessFunctionsClient').returns(sfClientStub);
+      this.sandbox
+        .stub(mdsSdk, 'getServerlessFunctionsClient')
+        .returns(sfClientStub);
       sfClientStub.invokeFunction.rejects(new Error('not found'));
 
       definition.Next = { Type: 'Succeed' };
@@ -58,25 +62,36 @@ describe('operations', () => {
         execution: 'executionId',
       };
       const op = new Task(definition, metadata);
-      const updateOperationStub = this.sandbox.stub(repos, 'updateOperation').resolves();
-      const createOperationStub = this.sandbox.stub(repos, 'createOperation').resolves();
-      const updateExecutionStub = this.sandbox.stub(repos, 'updateExecution').resolves();
+      const updateOperationStub = this.sandbox
+        .stub(repos, 'updateOperation')
+        .resolves();
+      const createOperationStub = this.sandbox
+        .stub(repos, 'createOperation')
+        .resolves();
+      const updateExecutionStub = this.sandbox
+        .stub(repos, 'updateExecution')
+        .resolves();
       this.sandbox.stub(globals, 'newUuid').returns('nextOpId');
 
       // Act
       return op.run().catch((err) => {
         // Assert
-        chai.expect(sfClientStub.invokeFunction.getCalls().length).to.be.equal(1);
-        chai.expect(sfClientStub.invokeFunction.getCall(0).args).to.be.eql([
-          definition.Resource,
-          undefined,
-        ]);
+        chai
+          .expect(sfClientStub.invokeFunction.getCalls().length)
+          .to.be.equal(1);
+        chai
+          .expect(sfClientStub.invokeFunction.getCall(0).args)
+          .to.be.eql([definition.Resource, undefined]);
 
         chai.expect(updateOperationStub.getCalls().length).to.be.equal(2);
         chai.expect(createOperationStub.getCalls().length).to.be.equal(0);
-        chai.expect(updateOperationStub.getCall(0).args).to.be.eql(['operationId', enums.OP_STATUS.Executing]);
+        chai
+          .expect(updateOperationStub.getCall(0).args)
+          .to.be.eql(['operationId', enums.OP_STATUS.Executing]);
         chai.expect(updateExecutionStub.getCalls().length).to.be.equal(1);
-        chai.expect(updateExecutionStub.getCall(0).args).to.be.eql(['executionId', enums.OP_STATUS.Failed]);
+        chai
+          .expect(updateExecutionStub.getCall(0).args)
+          .to.be.eql(['executionId', enums.OP_STATUS.Failed]);
         chai.expect(err.message).to.be.eql('not found');
       });
     });
@@ -88,7 +103,9 @@ describe('operations', () => {
         const sfClientStub = {
           invokeFunction: this.sandbox.stub(),
         };
-        this.sandbox.stub(mdsSdk, 'getServerlessFunctionsClient').returns(sfClientStub);
+        this.sandbox
+          .stub(mdsSdk, 'getServerlessFunctionsClient')
+          .returns(sfClientStub);
         sfClientStub.invokeFunction.resolves(expectedOutput);
         definition.Next = { Type: 'Succeed' };
         const metadata = {
@@ -96,24 +113,46 @@ describe('operations', () => {
           execution: 'executionId',
         };
         const op = new Task(definition, metadata);
-        const updateOperationStub = this.sandbox.stub(repos, 'updateOperation').resolves();
-        const createOperationStub = this.sandbox.stub(repos, 'createOperation').resolves();
-        const updateExecutionStub = this.sandbox.stub(repos, 'updateExecution').resolves();
+        const updateOperationStub = this.sandbox
+          .stub(repos, 'updateOperation')
+          .resolves();
+        const createOperationStub = this.sandbox
+          .stub(repos, 'createOperation')
+          .resolves();
+        const updateExecutionStub = this.sandbox
+          .stub(repos, 'updateExecution')
+          .resolves();
         this.sandbox.stub(globals, 'newUuid').returns('nextOpId');
 
         // Act
         return op.run().then((thenResult) => {
           // Assert
-          chai.expect(sfClientStub.invokeFunction.getCalls().length).to.be.equal(1);
-          chai.expect(sfClientStub.invokeFunction.getCall(0).args).to.be.eql([
-            definition.Resource,
-            metadata.input,
-          ]);
+          chai
+            .expect(sfClientStub.invokeFunction.getCalls().length)
+            .to.be.equal(1);
+          chai
+            .expect(sfClientStub.invokeFunction.getCall(0).args)
+            .to.be.eql([definition.Resource, metadata.input]);
           chai.expect(updateOperationStub.getCalls().length).to.be.equal(2);
           chai.expect(createOperationStub.getCalls().length).to.be.equal(1);
-          chai.expect(updateOperationStub.getCall(0).args).to.be.eql(['operationId', enums.OP_STATUS.Executing]);
-          chai.expect(updateOperationStub.getCall(1).args).to.be.eql(['operationId', enums.OP_STATUS.Succeeded, JSON.stringify(expectedOutput)]);
-          chai.expect(createOperationStub.getCall(0).args).to.be.eql(['nextOpId', 'executionId', definition.Next, JSON.stringify(expectedOutput)]);
+          chai
+            .expect(updateOperationStub.getCall(0).args)
+            .to.be.eql(['operationId', enums.OP_STATUS.Executing]);
+          chai
+            .expect(updateOperationStub.getCall(1).args)
+            .to.be.eql([
+              'operationId',
+              enums.OP_STATUS.Succeeded,
+              JSON.stringify(expectedOutput),
+            ]);
+          chai
+            .expect(createOperationStub.getCall(0).args)
+            .to.be.eql([
+              'nextOpId',
+              'executionId',
+              definition.Next,
+              JSON.stringify(expectedOutput),
+            ]);
           chai.expect(updateExecutionStub.getCalls().length).to.be.equal(0);
           chai.expect(thenResult).to.be.eql({
             next: definition.Next,
@@ -129,7 +168,9 @@ describe('operations', () => {
         const sfClientStub = {
           invokeFunction: this.sandbox.stub(),
         };
-        this.sandbox.stub(mdsSdk, 'getServerlessFunctionsClient').returns(sfClientStub);
+        this.sandbox
+          .stub(mdsSdk, 'getServerlessFunctionsClient')
+          .returns(sfClientStub);
         sfClientStub.invokeFunction.resolves(expectedOutput);
         definition.Next = { Type: 'Succeed' };
         const metadata = {
@@ -138,24 +179,46 @@ describe('operations', () => {
           input: null,
         };
         const op = new Task(definition, metadata);
-        const updateOperationStub = this.sandbox.stub(repos, 'updateOperation').resolves();
-        const createOperationStub = this.sandbox.stub(repos, 'createOperation').resolves();
-        const updateExecutionStub = this.sandbox.stub(repos, 'updateExecution').resolves();
+        const updateOperationStub = this.sandbox
+          .stub(repos, 'updateOperation')
+          .resolves();
+        const createOperationStub = this.sandbox
+          .stub(repos, 'createOperation')
+          .resolves();
+        const updateExecutionStub = this.sandbox
+          .stub(repos, 'updateExecution')
+          .resolves();
         this.sandbox.stub(globals, 'newUuid').returns('nextOpId');
 
         // Act
         return op.run().then((thenResult) => {
           // Assert
-          chai.expect(sfClientStub.invokeFunction.getCalls().length).to.be.equal(1);
-          chai.expect(sfClientStub.invokeFunction.getCall(0).args).to.be.eql([
-            definition.Resource,
-            metadata.input,
-          ]);
+          chai
+            .expect(sfClientStub.invokeFunction.getCalls().length)
+            .to.be.equal(1);
+          chai
+            .expect(sfClientStub.invokeFunction.getCall(0).args)
+            .to.be.eql([definition.Resource, metadata.input]);
           chai.expect(updateOperationStub.getCalls().length).to.be.equal(2);
           chai.expect(createOperationStub.getCalls().length).to.be.equal(1);
-          chai.expect(updateOperationStub.getCall(0).args).to.be.eql(['operationId', enums.OP_STATUS.Executing]);
-          chai.expect(updateOperationStub.getCall(1).args).to.be.eql(['operationId', enums.OP_STATUS.Succeeded, JSON.stringify(expectedOutput)]);
-          chai.expect(createOperationStub.getCall(0).args).to.be.eql(['nextOpId', 'executionId', definition.Next, JSON.stringify(expectedOutput)]);
+          chai
+            .expect(updateOperationStub.getCall(0).args)
+            .to.be.eql(['operationId', enums.OP_STATUS.Executing]);
+          chai
+            .expect(updateOperationStub.getCall(1).args)
+            .to.be.eql([
+              'operationId',
+              enums.OP_STATUS.Succeeded,
+              JSON.stringify(expectedOutput),
+            ]);
+          chai
+            .expect(createOperationStub.getCall(0).args)
+            .to.be.eql([
+              'nextOpId',
+              'executionId',
+              definition.Next,
+              JSON.stringify(expectedOutput),
+            ]);
           chai.expect(updateExecutionStub.getCalls().length).to.be.equal(0);
           chai.expect(thenResult).to.be.eql({
             next: definition.Next,
@@ -171,7 +234,9 @@ describe('operations', () => {
         const sfClientStub = {
           invokeFunction: this.sandbox.stub(),
         };
-        this.sandbox.stub(mdsSdk, 'getServerlessFunctionsClient').returns(sfClientStub);
+        this.sandbox
+          .stub(mdsSdk, 'getServerlessFunctionsClient')
+          .returns(sfClientStub);
         sfClientStub.invokeFunction.resolves(expectedOutput);
         definition.Next = { Type: 'Succeed' };
         const metadata = {
@@ -180,24 +245,46 @@ describe('operations', () => {
           input: 'abc',
         };
         const op = new Task(definition, metadata);
-        const updateOperationStub = this.sandbox.stub(repos, 'updateOperation').resolves();
-        const createOperationStub = this.sandbox.stub(repos, 'createOperation').resolves();
-        const updateExecutionStub = this.sandbox.stub(repos, 'updateExecution').resolves();
+        const updateOperationStub = this.sandbox
+          .stub(repos, 'updateOperation')
+          .resolves();
+        const createOperationStub = this.sandbox
+          .stub(repos, 'createOperation')
+          .resolves();
+        const updateExecutionStub = this.sandbox
+          .stub(repos, 'updateExecution')
+          .resolves();
         this.sandbox.stub(globals, 'newUuid').returns('nextOpId');
 
         // Act
         return op.run().then((thenResult) => {
           // Assert
-          chai.expect(sfClientStub.invokeFunction.getCalls().length).to.be.equal(1);
-          chai.expect(sfClientStub.invokeFunction.getCall(0).args).to.be.eql([
-            definition.Resource,
-            metadata.input,
-          ]);
+          chai
+            .expect(sfClientStub.invokeFunction.getCalls().length)
+            .to.be.equal(1);
+          chai
+            .expect(sfClientStub.invokeFunction.getCall(0).args)
+            .to.be.eql([definition.Resource, metadata.input]);
           chai.expect(updateOperationStub.getCalls().length).to.be.equal(2);
           chai.expect(createOperationStub.getCalls().length).to.be.equal(1);
-          chai.expect(updateOperationStub.getCall(0).args).to.be.eql(['operationId', enums.OP_STATUS.Executing]);
-          chai.expect(updateOperationStub.getCall(1).args).to.be.eql(['operationId', enums.OP_STATUS.Succeeded, JSON.stringify(expectedOutput)]);
-          chai.expect(createOperationStub.getCall(0).args).to.be.eql(['nextOpId', 'executionId', definition.Next, JSON.stringify(expectedOutput)]);
+          chai
+            .expect(updateOperationStub.getCall(0).args)
+            .to.be.eql(['operationId', enums.OP_STATUS.Executing]);
+          chai
+            .expect(updateOperationStub.getCall(1).args)
+            .to.be.eql([
+              'operationId',
+              enums.OP_STATUS.Succeeded,
+              JSON.stringify(expectedOutput),
+            ]);
+          chai
+            .expect(createOperationStub.getCall(0).args)
+            .to.be.eql([
+              'nextOpId',
+              'executionId',
+              definition.Next,
+              JSON.stringify(expectedOutput),
+            ]);
           chai.expect(updateExecutionStub.getCalls().length).to.be.equal(0);
           chai.expect(thenResult).to.be.eql({
             next: definition.Next,
@@ -213,7 +300,9 @@ describe('operations', () => {
         const sfClientStub = {
           invokeFunction: this.sandbox.stub(),
         };
-        this.sandbox.stub(mdsSdk, 'getServerlessFunctionsClient').returns(sfClientStub);
+        this.sandbox
+          .stub(mdsSdk, 'getServerlessFunctionsClient')
+          .returns(sfClientStub);
         sfClientStub.invokeFunction.resolves(expectedOutput);
         definition.Next = { Type: 'Succeed' };
         const metadata = {
@@ -222,24 +311,46 @@ describe('operations', () => {
           input: { testInput: 1234 },
         };
         const op = new Task(definition, metadata);
-        const updateOperationStub = this.sandbox.stub(repos, 'updateOperation').resolves();
-        const createOperationStub = this.sandbox.stub(repos, 'createOperation').resolves();
-        const updateExecutionStub = this.sandbox.stub(repos, 'updateExecution').resolves();
+        const updateOperationStub = this.sandbox
+          .stub(repos, 'updateOperation')
+          .resolves();
+        const createOperationStub = this.sandbox
+          .stub(repos, 'createOperation')
+          .resolves();
+        const updateExecutionStub = this.sandbox
+          .stub(repos, 'updateExecution')
+          .resolves();
         this.sandbox.stub(globals, 'newUuid').returns('nextOpId');
 
         // Act
         return op.run().then((thenResult) => {
           // Assert
-          chai.expect(sfClientStub.invokeFunction.getCalls().length).to.be.equal(1);
-          chai.expect(sfClientStub.invokeFunction.getCall(0).args).to.be.eql([
-            definition.Resource,
-            JSON.stringify(metadata.input),
-          ]);
+          chai
+            .expect(sfClientStub.invokeFunction.getCalls().length)
+            .to.be.equal(1);
+          chai
+            .expect(sfClientStub.invokeFunction.getCall(0).args)
+            .to.be.eql([definition.Resource, JSON.stringify(metadata.input)]);
           chai.expect(updateOperationStub.getCalls().length).to.be.equal(2);
           chai.expect(createOperationStub.getCalls().length).to.be.equal(1);
-          chai.expect(updateOperationStub.getCall(0).args).to.be.eql(['operationId', enums.OP_STATUS.Executing]);
-          chai.expect(updateOperationStub.getCall(1).args).to.be.eql(['operationId', enums.OP_STATUS.Succeeded, JSON.stringify(expectedOutput)]);
-          chai.expect(createOperationStub.getCall(0).args).to.be.eql(['nextOpId', 'executionId', definition.Next, JSON.stringify(expectedOutput)]);
+          chai
+            .expect(updateOperationStub.getCall(0).args)
+            .to.be.eql(['operationId', enums.OP_STATUS.Executing]);
+          chai
+            .expect(updateOperationStub.getCall(1).args)
+            .to.be.eql([
+              'operationId',
+              enums.OP_STATUS.Succeeded,
+              JSON.stringify(expectedOutput),
+            ]);
+          chai
+            .expect(createOperationStub.getCall(0).args)
+            .to.be.eql([
+              'nextOpId',
+              'executionId',
+              definition.Next,
+              JSON.stringify(expectedOutput),
+            ]);
           chai.expect(updateExecutionStub.getCalls().length).to.be.equal(0);
           chai.expect(thenResult).to.be.eql({
             next: definition.Next,

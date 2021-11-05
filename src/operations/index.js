@@ -9,10 +9,14 @@ const getOperation = (definition, metadata) => {
   const logger = globals.getLogger();
 
   if (!definition) {
-    logger.error('Definition appears falsy. Insufficient information to find operation.');
+    logger.error(
+      'Definition appears falsy. Insufficient information to find operation.',
+    );
   }
   if (!metadata) {
-    logger.error('Metadata appears falsy. Insufficient information to find operation.');
+    logger.error(
+      'Metadata appears falsy. Insufficient information to find operation.',
+    );
   }
 
   const { stateKey } = metadata;

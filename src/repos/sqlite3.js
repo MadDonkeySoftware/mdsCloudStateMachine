@@ -64,7 +64,10 @@ const mapTypeForReturn = (typeString, data) => {
     case null:
       return data;
     default:
-      logger.warn({ typeString }, 'Encountered unknown map type. Returning data as-is.');
+      logger.warn(
+        { typeString },
+        'Encountered unknown map type. Returning data as-is.',
+      );
       return data;
   }
 };
@@ -101,7 +104,8 @@ const getDb = () => {
 
     return database.then((dbObj) => {
       internalDb = dbObj;
-      return dbObj.run(createStateMachineVersionTableSql)
+      return dbObj
+        .run(createStateMachineVersionTableSql)
         .then(() => dbObj.run(createStateMachineTableSql))
         .then(() => dbObj.run(createExecutionTableSql))
         .then(() => dbObj.run(createOperationTableSql))
@@ -118,113 +122,171 @@ const getDb = () => {
   return Promise.resolve(db);
 };
 
-const getStateMachines = (db, accountId) => db.all('SELECT * FROM StateMachine WHERE account_id = $accountId', { accountId });
+const getStateMachines = (db, accountId) =>
+  db.all('SELECT * FROM StateMachine WHERE account_id = $accountId', {
+    accountId,
+  });
 
 const createStateMachine = (db, id, accountId, name, definitionObject) => {
   const versionId = globals.newUuid();
-  return db.run('INSERT INTO StateMachineVersion VALUES ($id, $definition)', { $id: versionId, $definition: JSON.stringify(definitionObject) })
-    .then(() => db.run('INSERT INTO StateMachine VALUES ($id, $account_id, $name, $active_version)', {
-      $id: id,
-      $account_id: accountId,
-      $name: name,
-      $active_version: versionId,
-    }));
+  return db
+    .run('INSERT INTO StateMachineVersion VALUES ($id, $definition)', {
+      $id: versionId,
+      $definition: JSON.stringify(definitionObject),
+    })
+    .then(() =>
+      db.run(
+        'INSERT INTO StateMachine VALUES ($id, $account_id, $name, $active_version)',
+        {
+          $id: id,
+          $account_id: accountId,
+          $name: name,
+          $active_version: versionId,
+        },
+      ),
+    );
 };
 const updateStateMachine = (db, id, definitionObject) => {
   const versionId = globals.newUuid();
-  return db.run('INSERT INTO StateMachineVersion VALUES ($id, $definition)', { $id: versionId, $definition: JSON.stringify(definitionObject) })
-    .then(() => db.run('UPDATE StateMachine SET active_version = $active_version WHERE id = $id', { $id: id, $active_version: versionId }));
+  return db
+    .run('INSERT INTO StateMachineVersion VALUES ($id, $definition)', {
+      $id: versionId,
+      $definition: JSON.stringify(definitionObject),
+    })
+    .then(() =>
+      db.run(
+        'UPDATE StateMachine SET active_version = $active_version WHERE id = $id',
+        { $id: id, $active_version: versionId },
+      ),
+    );
 };
 
-const getStateMachine = (db, id) => db.get('SELECT * FROM StateMachine WHERE id = $id', { $id: id })
-  .then((stateMachine) => db.get('SELECT * FROM StateMachineVersion WHERE id = $id', { $id: stateMachine.active_version })
-    .then((stateMachineVersion) => ({ stateMachine, stateMachineVersion })))
-  .then((data) => ({
-    ...data.stateMachine,
-    definition: JSON.parse(data.stateMachineVersion.definition),
-  }))
-  .catch((err) => {
-    logger.warn({ err }, 'Error during execution');
-  });
+const getStateMachine = (db, id) =>
+  db
+    .get('SELECT * FROM StateMachine WHERE id = $id', { $id: id })
+    .then((stateMachine) =>
+      db
+        .get('SELECT * FROM StateMachineVersion WHERE id = $id', {
+          $id: stateMachine.active_version,
+        })
+        .then((stateMachineVersion) => ({ stateMachine, stateMachineVersion })),
+    )
+    .then((data) => ({
+      ...data.stateMachine,
+      definition: JSON.parse(data.stateMachineVersion.definition),
+    }))
+    .catch((err) => {
+      logger.warn({ err }, 'Error during execution');
+    });
 
-const createExecution = (db, id, versionId) => db.run('INSERT INTO Execution VALUES ($id, $created, $status, $version)', {
-  $id: id,
-  $created: new Date().toISOString(),
-  $status: enums.OP_STATUS.Pending,
-  $version: versionId,
-});
-const updateExecution = (db, id, status) => db.run('UPDATE Execution SET status = $status WHERE id = $id', { $status: status, $id: id });
-const getExecution = (db, id) => db.get('SELECT * FROM Execution WHERE id = $id', { $id: id });
-const getStateMachineDefinitionForExecution = (db, id) => db.get('SELECT smv.definition FROM Execution AS e JOIN StateMachineVersion AS smv ON e.version = smv.id WHERE e.id = $executionId', { $executionId: id })
-  .then((result) => JSON.parse(result.definition));
-const getDetailsForExecution = (db, id) => db.all('SELECT e.status AS executionStatus, o.* FROM Execution AS e JOIN Operation AS o ON e.id = o.execution WHERE e.id = $executionId', { $executionId: id })
-  .then((results) => ({
-    id,
-    status: results[0] ? results[0].executionStatus : 'unknown',
-    operations: results.map((e) => {
-      const inputData = mapTypeForReturn(e.inputType, e.input);
-      const outputData = mapTypeForReturn(e.outputType, e.output);
-      return {
-        id: e.id,
-        created: e.created,
-        status: e.status,
-        stateKey: e.stateKey,
-        input: inputData,
-        output: outputData,
-      };
-    }),
-  }));
+const createExecution = (db, id, versionId) =>
+  db.run('INSERT INTO Execution VALUES ($id, $created, $status, $version)', {
+    $id: id,
+    $created: new Date().toISOString(),
+    $status: enums.OP_STATUS.Pending,
+    $version: versionId,
+  });
+const updateExecution = (db, id, status) =>
+  db.run('UPDATE Execution SET status = $status WHERE id = $id', {
+    $status: status,
+    $id: id,
+  });
+const getExecution = (db, id) =>
+  db.get('SELECT * FROM Execution WHERE id = $id', { $id: id });
+const getStateMachineDefinitionForExecution = (db, id) =>
+  db
+    .get(
+      'SELECT smv.definition FROM Execution AS e JOIN StateMachineVersion AS smv ON e.version = smv.id WHERE e.id = $executionId',
+      { $executionId: id },
+    )
+    .then((result) => JSON.parse(result.definition));
+const getDetailsForExecution = (db, id) =>
+  db
+    .all(
+      'SELECT e.status AS executionStatus, o.* FROM Execution AS e JOIN Operation AS o ON e.id = o.execution WHERE e.id = $executionId',
+      { $executionId: id },
+    )
+    .then((results) => ({
+      id,
+      status: results[0] ? results[0].executionStatus : 'unknown',
+      operations: results.map((e) => {
+        const inputData = mapTypeForReturn(e.inputType, e.input);
+        const outputData = mapTypeForReturn(e.outputType, e.output);
+        return {
+          id: e.id,
+          created: e.created,
+          status: e.status,
+          stateKey: e.stateKey,
+          input: inputData,
+          output: outputData,
+        };
+      }),
+    }));
 
 const createOperation = (db, id, executionId, stateKey, input) => {
   const inputMap = mapTypeForStorage(input);
-  return db.run('INSERT INTO Operation VALUES ($id, $executionId, $created, $stateKey, $status, $input, $inputType, $output, $outputType, NULL)', {
-    $id: id,
-    $executionId: executionId,
-    $created: new Date().toISOString(),
-    $stateKey: stateKey,
-    $status: enums.OP_STATUS.Pending,
-    $input: inputMap.data,
-    $inputType: inputMap.type,
-    $output: null,
-    $outputType: null,
-  });
+  return db.run(
+    'INSERT INTO Operation VALUES ($id, $executionId, $created, $stateKey, $status, $input, $inputType, $output, $outputType, NULL)',
+    {
+      $id: id,
+      $executionId: executionId,
+      $created: new Date().toISOString(),
+      $stateKey: stateKey,
+      $status: enums.OP_STATUS.Pending,
+      $input: inputMap.data,
+      $inputType: inputMap.type,
+      $output: null,
+      $outputType: null,
+    },
+  );
 };
 const updateOperation = (db, id, status, output) => {
   const outputMap = mapTypeForStorage(output);
-  return db.run('UPDATE Operation SET status = $status, output = $output, outputType = $outputType WHERE id = $id', {
-    $status: status,
-    $output: outputMap.data,
-    $outputType: outputMap.type,
-    $id: id,
-  });
+  return db.run(
+    'UPDATE Operation SET status = $status, output = $output, outputType = $outputType WHERE id = $id',
+    {
+      $status: status,
+      $output: outputMap.data,
+      $outputType: outputMap.type,
+      $id: id,
+    },
+  );
 };
-const delayOperation = (db, id, waitUntilUtc) => db.run('UPDATE Operation SET status = $status, waitUntilUtc = $waitUntilUtc WHERE id = $id', {
-  $status: enums.OP_STATUS.Waiting,
-  $waitUntilUtc: waitUntilUtc,
-  $id: id,
-});
-const getOperation = (db, id) => db.get('SELECT * FROM Operation WHERE id = $id', { $id: id })
-  .then((result) => {
-    const inputMap = mapTypeForReturn(result.inputType, result.input);
-    const outputMap = mapTypeForReturn(result.outputType, result.output);
-    const {
-      execution, created, stateKey, status, waitUntilUtc,
-    } = result;
-    return {
-      id,
-      execution,
-      created,
-      stateKey,
-      status,
-      input: inputMap,
-      output: outputMap,
-      waitUntilUtc,
-    };
-  });
-const getDelayedOperations = (db, waitUntilUtc) => db.all('SELECT * FROM Operation WHERE status = $status AND waitUntilUtc < $waitUntilUtc', {
-  $status: enums.OP_STATUS.Waiting,
-  $waitUntilUtc: waitUntilUtc,
-});
+const delayOperation = (db, id, waitUntilUtc) =>
+  db.run(
+    'UPDATE Operation SET status = $status, waitUntilUtc = $waitUntilUtc WHERE id = $id',
+    {
+      $status: enums.OP_STATUS.Waiting,
+      $waitUntilUtc: waitUntilUtc,
+      $id: id,
+    },
+  );
+const getOperation = (db, id) =>
+  db
+    .get('SELECT * FROM Operation WHERE id = $id', { $id: id })
+    .then((result) => {
+      const inputMap = mapTypeForReturn(result.inputType, result.input);
+      const outputMap = mapTypeForReturn(result.outputType, result.output);
+      const { execution, created, stateKey, status, waitUntilUtc } = result;
+      return {
+        id,
+        execution,
+        created,
+        stateKey,
+        status,
+        input: inputMap,
+        output: outputMap,
+        waitUntilUtc,
+      };
+    });
+const getDelayedOperations = (db, waitUntilUtc) =>
+  db.all(
+    'SELECT * FROM Operation WHERE status = $status AND waitUntilUtc < $waitUntilUtc',
+    {
+      $status: enums.OP_STATUS.Waiting,
+      $waitUntilUtc: waitUntilUtc,
+    },
+  );
 
 module.exports = {
   getDb,

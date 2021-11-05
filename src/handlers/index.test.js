@@ -10,7 +10,9 @@ const handlerHelpers = require('./handler-helpers');
 describe('src/handlers/index', () => {
   beforeEach(() => {
     sinon.stub(handlerHelpers, 'getIssuer').returns('testIssuer');
-    sinon.stub(handlerHelpers, 'getAppPublicSignature').resolves('publicSignature');
+    sinon
+      .stub(handlerHelpers, 'getAppPublicSignature')
+      .resolves('publicSignature');
     sinon.stub(jwt, 'verify').returns({
       payload: {
         iss: 'testIssuer',
@@ -41,10 +43,12 @@ describe('src/handlers/index', () => {
     it('provides the root url', () => {
       // Arrange
       const app = src.buildApp();
-      const stateMachines = [{
-        id: 1,
-        name: 'fooBar',
-      }];
+      const stateMachines = [
+        {
+          id: 1,
+          name: 'fooBar',
+        },
+      ];
       sinon.stub(repos, 'getStateMachines').resolves(stateMachines);
 
       // Act / Assert
@@ -55,11 +59,13 @@ describe('src/handlers/index', () => {
         .expect(200)
         .then((resp) => {
           const body = JSON.parse(resp.text);
-          chai.expect(body).to.deep.eql([{
-            id: 1,
-            name: 'fooBar',
-            orid: 'orid:1::::1:sm:1',
-          }]);
+          chai.expect(body).to.deep.eql([
+            {
+              id: 1,
+              name: 'fooBar',
+              orid: 'orid:1::::1:sm:1',
+            },
+          ]);
         });
     });
   });
@@ -72,7 +78,10 @@ describe('src/handlers/index', () => {
         id: 'test',
         name: 'fooBar',
       };
-      sinon.stub(repos, 'getStateMachine').withArgs('test').resolves(stateMachines);
+      sinon
+        .stub(repos, 'getStateMachine')
+        .withArgs('test')
+        .resolves(stateMachines);
 
       // Act / Assert
       return supertest(app)

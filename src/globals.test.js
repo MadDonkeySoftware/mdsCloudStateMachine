@@ -63,7 +63,8 @@ describe(__filename, () => {
   describe('newUuid', () => {
     it('Generates a new UUID each call', () => {
       // Arrange
-      const regex = /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/;
+      const regex =
+        /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/;
 
       // Act
       const newId = globals.newUuid();

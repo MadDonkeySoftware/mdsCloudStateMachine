@@ -3,7 +3,8 @@ const enums = require('../enums');
 const globals = require('../globals');
 
 function Choice(definition, metadata) {
-  if (definition.Type !== 'Choice') throw new Error(`Attempted to use ${definition.Type} type for "Choice".`);
+  if (definition.Type !== 'Choice')
+    throw new Error(`Attempted to use ${definition.Type} type for "Choice".`);
   this.resource = definition.Resource;
   this.catch = definition.Catch;
   this.choices = definition.Choices;
@@ -60,11 +61,7 @@ function performTest(operation, choice, input) {
 }
 
 function processChoice(that) {
-  const {
-    choices,
-    defaultOption,
-    input,
-  } = that;
+  const { choices, defaultOption, input } = that;
   let next = null;
   const checks = [
     'And',
@@ -93,8 +90,10 @@ function processChoice(that) {
     if (next) break;
     for (let j = 0; j < checks.length; j += 1) {
       const check = checks[j];
-      if (Object.prototype.hasOwnProperty.call(choice, check)
-          && performTest(check, choice, input)) {
+      if (
+        Object.prototype.hasOwnProperty.call(choice, check) &&
+        performTest(check, choice, input)
+      ) {
         next = choice.Next;
         break;
       }
@@ -108,14 +107,11 @@ Choice.prototype.run = function run() {
   this.output = this.input;
 
   const nextOpId = globals.newUuid();
-  const {
-    operationId,
-    executionId,
-    output,
-  } = this;
+  const { operationId, executionId, output } = this;
   let next;
 
-  return repos.updateOperation(operationId, enums.OP_STATUS.Executing)
+  return repos
+    .updateOperation(operationId, enums.OP_STATUS.Executing)
     .then(() => processChoice(this))
     .then((nextStateKey) => {
       next = nextStateKey;
@@ -134,7 +130,10 @@ Choice.prototype.run = function run() {
     }))
     .catch((err) => {
       const logger = globals.getLogger();
-      logger.warn({ executionId, operationId, err }, 'Failed processing choice step.');
+      logger.warn(
+        { executionId, operationId, err },
+        'Failed processing choice step.',
+      );
       repos.updateOperation(operationId, enums.OP_STATUS.Failed);
       repos.updateExecution(executionId, enums.OP_STATUS.Failed);
     });

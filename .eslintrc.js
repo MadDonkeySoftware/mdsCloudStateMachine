@@ -5,8 +5,7 @@ module.exports = {
     node: true,
     mocha: true,
   },
-  // extends: ['airbnb-base', 'plugin:prettier/recommended'],
-  extends: ['airbnb-base'],
+  extends: ['airbnb-base', 'plugin:prettier/recommended'],
   parserOptions: {
     ecmaVersion: 2018,
   },

@@ -7,7 +7,8 @@ const enums = require('../enums');
 const logger = globals.getLogger();
 
 function Task(definition, metadata) {
-  if (definition.Type !== 'Task') throw new Error(`Attempted to use ${definition.Type} type for "Task".`);
+  if (definition.Type !== 'Task')
+    throw new Error(`Attempted to use ${definition.Type} type for "Task".`);
   this.resource = definition.Resource;
   this.next = definition.Next;
   this.catchDef = definition.Catch;
@@ -18,13 +19,7 @@ function Task(definition, metadata) {
 }
 
 const handleInvokeResponse = (that, result, err) => {
-  const {
-    next,
-    catchDef,
-    input,
-    operationId,
-    executionId,
-  } = that;
+  const { next, catchDef, input, operationId, executionId } = that;
   const nextOpId = globals.newUuid();
 
   // TODO: Handle retries / error configurations.
@@ -37,8 +32,13 @@ const handleInvokeResponse = (that, result, err) => {
         const errNext = def.Next;
         if (errs.length === 1 && errs[0] === 'States.ALL') {
           logger.trace({ err }, 'Function invoke failed.');
-          return repos.updateOperation(operationId, enums.OP_STATUS.Failed, input)
-            .then(() => errNext && repos.createOperation(nextOpId, executionId, errNext, input))
+          return repos
+            .updateOperation(operationId, enums.OP_STATUS.Failed, input)
+            .then(
+              () =>
+                errNext &&
+                repos.createOperation(nextOpId, executionId, errNext, input),
+            )
             .then(() => ({
               nextOpId,
               output: input,
@@ -48,7 +48,8 @@ const handleInvokeResponse = (that, result, err) => {
       }
     }
 
-    return repos.updateOperation(operationId, enums.OP_STATUS.Failed, input)
+    return repos
+      .updateOperation(operationId, enums.OP_STATUS.Failed, input)
       .then(() => repos.updateExecution(executionId, enums.OP_STATUS.Failed))
       .then(() => {
         throw err;
@@ -57,8 +58,11 @@ const handleInvokeResponse = (that, result, err) => {
 
   const output = JSON.stringify(result);
 
-  return repos.updateOperation(operationId, enums.OP_STATUS.Succeeded, output)
-    .then(() => next && repos.createOperation(nextOpId, executionId, next, output))
+  return repos
+    .updateOperation(operationId, enums.OP_STATUS.Succeeded, output)
+    .then(
+      () => next && repos.createOperation(nextOpId, executionId, next, output),
+    )
     .then(() => ({
       nextOpId,
       output,
@@ -80,7 +84,8 @@ Task.prototype.run = function run() {
 
   logger.trace({ body }, 'Invoking remote function.');
 
-  return repos.updateOperation(this.operationId, enums.OP_STATUS.Executing)
+  return repos
+    .updateOperation(this.operationId, enums.OP_STATUS.Executing)
     .then(() => invokeFunction(this.resource, body))
     .then((result) => handleInvokeResponse(this, result))
     .catch((err) => handleInvokeResponse(this, undefined, err));

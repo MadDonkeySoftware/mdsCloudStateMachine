@@ -13,7 +13,7 @@ describe('operations', () => {
       Choices: choices,
     };
 
-    return defaultNext ? ({ ...base, Default: defaultNext }) : ({ ...base });
+    return defaultNext ? { ...base, Default: defaultNext } : { ...base };
   };
 
   beforeEach(() => {
@@ -37,25 +37,36 @@ describe('operations', () => {
       try {
         Choice.call({}, { Type: 'Task' }, metadata);
       } catch (err) {
-        chai.expect(err.message).to.be.equal('Attempted to use Task type for "Choice".');
+        chai
+          .expect(err.message)
+          .to.be.equal('Attempted to use Task type for "Choice".');
       }
     });
 
     it('Should queue next operation and return payload when default set and no mach found.', () => {
       // Arrange
-      const definition = buildChoice([{
-        Variable: '$.testMe',
-        BooleanEquals: true,
-        Next: 'Success',
-      }], 'Default');
+      const definition = buildChoice(
+        [
+          {
+            Variable: '$.testMe',
+            BooleanEquals: true,
+            Next: 'Success',
+          },
+        ],
+        'Default',
+      );
       const metadata = {
         id: 'operationId',
         execution: 'executionId',
         input: { testMe: false },
       };
       const op = new Choice(definition, metadata);
-      const updateOperationStub = this.sandbox.stub(repos, 'updateOperation').resolves();
-      const createOperationStub = this.sandbox.stub(repos, 'createOperation').resolves();
+      const updateOperationStub = this.sandbox
+        .stub(repos, 'updateOperation')
+        .resolves();
+      const createOperationStub = this.sandbox
+        .stub(repos, 'createOperation')
+        .resolves();
       this.sandbox.stub(globals, 'newUuid').returns('nextOpId');
 
       // Act
@@ -63,9 +74,19 @@ describe('operations', () => {
         // Assert
         chai.expect(updateOperationStub.getCalls().length).to.be.equal(2);
         chai.expect(createOperationStub.getCalls().length).to.be.equal(1);
-        chai.expect(updateOperationStub.getCall(0).args).to.be.eql(['operationId', enums.OP_STATUS.Executing]);
-        chai.expect(updateOperationStub.getCall(1).args).to.be.eql(['operationId', enums.OP_STATUS.Succeeded, metadata.input]);
-        chai.expect(createOperationStub.getCall(0).args).to.be.eql(['nextOpId', 'executionId', 'Default', metadata.input]);
+        chai
+          .expect(updateOperationStub.getCall(0).args)
+          .to.be.eql(['operationId', enums.OP_STATUS.Executing]);
+        chai
+          .expect(updateOperationStub.getCall(1).args)
+          .to.be.eql([
+            'operationId',
+            enums.OP_STATUS.Succeeded,
+            metadata.input,
+          ]);
+        chai
+          .expect(createOperationStub.getCall(0).args)
+          .to.be.eql(['nextOpId', 'executionId', 'Default', metadata.input]);
         chai.expect(result).to.be.eql({
           next: 'Default',
           nextOpId: 'nextOpId',
@@ -76,20 +97,28 @@ describe('operations', () => {
 
     it('Should fail operation and execution when default not set and no mach found.', () => {
       // Arrange
-      const definition = buildChoice([{
-        Variable: '$.testMe',
-        BooleanEquals: true,
-        Next: 'Success',
-      }]);
+      const definition = buildChoice([
+        {
+          Variable: '$.testMe',
+          BooleanEquals: true,
+          Next: 'Success',
+        },
+      ]);
       const metadata = {
         id: 'operationId',
         execution: 'executionId',
         input: { testMe: false },
       };
       const op = new Choice(definition, metadata);
-      const updateOperationStub = this.sandbox.stub(repos, 'updateOperation').resolves();
-      const createOperationStub = this.sandbox.stub(repos, 'createOperation').resolves();
-      const updateExecutionStub = this.sandbox.stub(repos, 'updateExecution').resolves();
+      const updateOperationStub = this.sandbox
+        .stub(repos, 'updateOperation')
+        .resolves();
+      const createOperationStub = this.sandbox
+        .stub(repos, 'createOperation')
+        .resolves();
+      const updateExecutionStub = this.sandbox
+        .stub(repos, 'updateExecution')
+        .resolves();
       this.sandbox.stub(globals, 'newUuid').returns('nextOpId');
 
       // Act
@@ -98,9 +127,15 @@ describe('operations', () => {
         chai.expect(updateOperationStub.getCalls().length).to.be.equal(2);
         chai.expect(createOperationStub.getCalls().length).to.be.equal(0);
         chai.expect(updateExecutionStub.getCalls().length).to.be.equal(1);
-        chai.expect(updateOperationStub.getCall(0).args).to.be.eql(['operationId', enums.OP_STATUS.Executing]);
-        chai.expect(updateOperationStub.getCall(1).args).to.be.eql(['operationId', enums.OP_STATUS.Failed]);
-        chai.expect(updateExecutionStub.getCall(0).args).to.be.eql(['executionId', enums.OP_STATUS.Failed]);
+        chai
+          .expect(updateOperationStub.getCall(0).args)
+          .to.be.eql(['operationId', enums.OP_STATUS.Executing]);
+        chai
+          .expect(updateOperationStub.getCall(1).args)
+          .to.be.eql(['operationId', enums.OP_STATUS.Failed]);
+        chai
+          .expect(updateExecutionStub.getCall(0).args)
+          .to.be.eql(['executionId', enums.OP_STATUS.Failed]);
         chai.expect(result).to.be.eql({
           next: undefined,
           nextOpId: 'nextOpId',
@@ -112,8 +147,12 @@ describe('operations', () => {
     describe('Should queue next operation and return payload when match found', () => {
       const performSuccessTest = (definition, metadata, nextKey) => {
         const op = new Choice(definition, metadata);
-        const updateOperationStub = this.sandbox.stub(repos, 'updateOperation').resolves();
-        const createOperationStub = this.sandbox.stub(repos, 'createOperation').resolves();
+        const updateOperationStub = this.sandbox
+          .stub(repos, 'updateOperation')
+          .resolves();
+        const createOperationStub = this.sandbox
+          .stub(repos, 'createOperation')
+          .resolves();
         this.sandbox.stub(globals, 'newUuid').returns('nextOpId');
 
         // Act
@@ -121,9 +160,19 @@ describe('operations', () => {
           // Assert
           chai.expect(updateOperationStub.getCalls().length).to.be.equal(2);
           chai.expect(createOperationStub.getCalls().length).to.be.equal(1);
-          chai.expect(updateOperationStub.getCall(0).args).to.be.eql(['operationId', enums.OP_STATUS.Executing]);
-          chai.expect(updateOperationStub.getCall(1).args).to.be.eql(['operationId', enums.OP_STATUS.Succeeded, metadata.input]);
-          chai.expect(createOperationStub.getCall(0).args).to.be.eql(['nextOpId', 'executionId', nextKey, metadata.input]);
+          chai
+            .expect(updateOperationStub.getCall(0).args)
+            .to.be.eql(['operationId', enums.OP_STATUS.Executing]);
+          chai
+            .expect(updateOperationStub.getCall(1).args)
+            .to.be.eql([
+              'operationId',
+              enums.OP_STATUS.Succeeded,
+              metadata.input,
+            ]);
+          chai
+            .expect(createOperationStub.getCall(0).args)
+            .to.be.eql(['nextOpId', 'executionId', nextKey, metadata.input]);
           chai.expect(result).to.be.eql({
             next: nextKey,
             nextOpId: 'nextOpId',
@@ -134,8 +183,12 @@ describe('operations', () => {
 
       const performFailToDefaultTest = (definition, metadata) => {
         const op = new Choice(definition, metadata);
-        const updateOperationStub = this.sandbox.stub(repos, 'updateOperation').resolves();
-        const createOperationStub = this.sandbox.stub(repos, 'createOperation').resolves();
+        const updateOperationStub = this.sandbox
+          .stub(repos, 'updateOperation')
+          .resolves();
+        const createOperationStub = this.sandbox
+          .stub(repos, 'createOperation')
+          .resolves();
         this.sandbox.stub(globals, 'newUuid').returns('nextOpId');
 
         // Act
@@ -143,9 +196,24 @@ describe('operations', () => {
           // Assert
           chai.expect(updateOperationStub.getCalls().length).to.be.equal(2);
           chai.expect(createOperationStub.getCalls().length).to.be.equal(1);
-          chai.expect(updateOperationStub.getCall(0).args).to.be.eql(['operationId', enums.OP_STATUS.Executing]);
-          chai.expect(updateOperationStub.getCall(1).args).to.be.eql(['operationId', enums.OP_STATUS.Succeeded, metadata.input]);
-          chai.expect(createOperationStub.getCall(0).args).to.be.eql(['nextOpId', 'executionId', definition.Default, metadata.input]);
+          chai
+            .expect(updateOperationStub.getCall(0).args)
+            .to.be.eql(['operationId', enums.OP_STATUS.Executing]);
+          chai
+            .expect(updateOperationStub.getCall(1).args)
+            .to.be.eql([
+              'operationId',
+              enums.OP_STATUS.Succeeded,
+              metadata.input,
+            ]);
+          chai
+            .expect(createOperationStub.getCall(0).args)
+            .to.be.eql([
+              'nextOpId',
+              'executionId',
+              definition.Default,
+              metadata.input,
+            ]);
           chai.expect(result).to.be.eql({
             next: definition.Default,
             nextOpId: 'nextOpId',
@@ -162,11 +230,16 @@ describe('operations', () => {
         it('Successful match', () => {
           // Arrange
           const nextKey = 'Success';
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            BooleanEquals: true,
-            Next: nextKey,
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                BooleanEquals: true,
+                Next: nextKey,
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -177,11 +250,16 @@ describe('operations', () => {
 
         it('Unsuccessful match', () => {
           // Arrange
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            BooleanEquals: true,
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                BooleanEquals: true,
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -199,11 +277,16 @@ describe('operations', () => {
         it('Successful match', () => {
           // Arrange
           const nextKey = 'Success';
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            NumericEquals: 23,
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                NumericEquals: 23,
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -214,11 +297,16 @@ describe('operations', () => {
 
         it('Unsuccessful match', () => {
           // Arrange
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            NumericEquals: 23,
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                NumericEquals: 23,
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -232,11 +320,16 @@ describe('operations', () => {
         it('Successful match', () => {
           // Arrange
           const nextKey = 'Success';
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            NumericGreaterThan: 20,
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                NumericGreaterThan: 20,
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -247,11 +340,16 @@ describe('operations', () => {
 
         it('Unsuccessful match', () => {
           // Arrange
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            NumericGreaterThan: 23,
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                NumericGreaterThan: 23,
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -265,11 +363,16 @@ describe('operations', () => {
         it('Successful match greater than', () => {
           // Arrange
           const nextKey = 'Success';
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            NumericGreaterThanEquals: 20,
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                NumericGreaterThanEquals: 20,
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -281,11 +384,16 @@ describe('operations', () => {
         it('Successful match equals', () => {
           // Arrange
           const nextKey = 'Success';
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            NumericGreaterThanEquals: 23,
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                NumericGreaterThanEquals: 23,
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -296,11 +404,16 @@ describe('operations', () => {
 
         it('Unsuccessful match', () => {
           // Arrange
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            NumericGreaterThanEquals: 25,
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                NumericGreaterThanEquals: 25,
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -314,11 +427,16 @@ describe('operations', () => {
         it('Successful match', () => {
           // Arrange
           const nextKey = 'Success';
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            NumericLessThan: 30,
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                NumericLessThan: 30,
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -329,11 +447,16 @@ describe('operations', () => {
 
         it('Unsuccessful match', () => {
           // Arrange
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            NumericLessThan: 23,
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                NumericLessThan: 23,
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -347,11 +470,16 @@ describe('operations', () => {
         it('Successful match less than', () => {
           // Arrange
           const nextKey = 'Success';
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            NumericLessThanEquals: 30,
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                NumericLessThanEquals: 30,
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -363,11 +491,16 @@ describe('operations', () => {
         it('Successful match equals', () => {
           // Arrange
           const nextKey = 'Success';
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            NumericLessThanEquals: 23,
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                NumericLessThanEquals: 23,
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -378,11 +511,16 @@ describe('operations', () => {
 
         it('Unsuccessful match', () => {
           // Arrange
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            NumericLessThanEquals: 20,
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                NumericLessThanEquals: 20,
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -400,11 +538,16 @@ describe('operations', () => {
         it('Successful match', () => {
           // Arrange
           const nextKey = 'Success';
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            StringEquals: 'matchTest',
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                StringEquals: 'matchTest',
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -415,11 +558,16 @@ describe('operations', () => {
 
         it('Unsuccessful match', () => {
           // Arrange
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            StringEquals: 'matchTest',
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                StringEquals: 'matchTest',
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -433,11 +581,16 @@ describe('operations', () => {
         it('Successful match', () => {
           // Arrange
           const nextKey = 'Success';
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            StringGreaterThan: 'a',
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                StringGreaterThan: 'a',
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -448,11 +601,16 @@ describe('operations', () => {
 
         it('Unsuccessful match', () => {
           // Arrange
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            StringGreaterThan: 'a',
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                StringGreaterThan: 'a',
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -466,11 +624,16 @@ describe('operations', () => {
         it('Successful match greater than', () => {
           // Arrange
           const nextKey = 'Success';
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            StringGreaterThanEquals: 'b',
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                StringGreaterThanEquals: 'b',
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -482,11 +645,16 @@ describe('operations', () => {
         it('Successful match equals', () => {
           // Arrange
           const nextKey = 'Success';
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            StringGreaterThanEquals: 'b',
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                StringGreaterThanEquals: 'b',
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -497,11 +665,16 @@ describe('operations', () => {
 
         it('Unsuccessful match', () => {
           // Arrange
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            StringGreaterThanEquals: 'b',
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                StringGreaterThanEquals: 'b',
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -515,11 +688,16 @@ describe('operations', () => {
         it('Successful match', () => {
           // Arrange
           const nextKey = 'Success';
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            StringLessThan: 'b',
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                StringLessThan: 'b',
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -530,11 +708,16 @@ describe('operations', () => {
 
         it('Unsuccessful match', () => {
           // Arrange
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            StringLessThan: 'a',
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                StringLessThan: 'a',
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -548,11 +731,16 @@ describe('operations', () => {
         it('Successful match greater than', () => {
           // Arrange
           const nextKey = 'Success';
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            StringLessThanEquals: 'b',
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                StringLessThanEquals: 'b',
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -564,11 +752,16 @@ describe('operations', () => {
         it('Successful match equals', () => {
           // Arrange
           const nextKey = 'Success';
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            StringLessThanEquals: 'b',
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                StringLessThanEquals: 'b',
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -579,11 +772,16 @@ describe('operations', () => {
 
         it('Unsuccessful match', () => {
           // Arrange
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            StringLessThanEquals: 'a',
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                StringLessThanEquals: 'a',
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -598,11 +796,16 @@ describe('operations', () => {
           // Arrange
           const nextKey = 'Success';
           const timeStamp = new Date().toISOString();
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            TimestampEquals: timeStamp,
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                TimestampEquals: timeStamp,
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -613,11 +816,16 @@ describe('operations', () => {
 
         it('Unsuccessful match', () => {
           // Arrange
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            TimestampEquals: '2019-09-19T19:23:14.403Z',
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                TimestampEquals: '2019-09-19T19:23:14.403Z',
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -631,11 +839,16 @@ describe('operations', () => {
         it('Successful match', () => {
           // Arrange
           const nextKey = 'Success';
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            TimestampGreaterThan: '2019-09-19T19:23:14.403Z',
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                TimestampGreaterThan: '2019-09-19T19:23:14.403Z',
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -646,11 +859,16 @@ describe('operations', () => {
 
         it('Unsuccessful match', () => {
           // Arrange
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            TimestampGreaterThan: '2019-09-19T19:23:14.403Z',
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                TimestampGreaterThan: '2019-09-19T19:23:14.403Z',
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -664,11 +882,16 @@ describe('operations', () => {
         it('Successful match greater than', () => {
           // Arrange
           const nextKey = 'Success';
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            TimestampGreaterThanEquals: '2019-09-19T18:23:14.403Z',
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                TimestampGreaterThanEquals: '2019-09-19T18:23:14.403Z',
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -680,11 +903,16 @@ describe('operations', () => {
         it('Successful match equals', () => {
           // Arrange
           const nextKey = 'Success';
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            TimestampGreaterThanEquals: '2019-09-19T19:23:14.403Z',
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                TimestampGreaterThanEquals: '2019-09-19T19:23:14.403Z',
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -695,11 +923,16 @@ describe('operations', () => {
 
         it('Unsuccessful match', () => {
           // Arrange
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            TimestampGreaterThanEquals: '2019-09-19T20:23:14.403Z',
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                TimestampGreaterThanEquals: '2019-09-19T20:23:14.403Z',
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -713,11 +946,16 @@ describe('operations', () => {
         it('Successful match', () => {
           // Arrange
           const nextKey = 'Success';
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            TimestampLessThan: '2019-09-20T19:23:14.403Z',
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                TimestampLessThan: '2019-09-20T19:23:14.403Z',
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -728,11 +966,16 @@ describe('operations', () => {
 
         it('Unsuccessful match', () => {
           // Arrange
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            TimestampLessThan: '2019-09-19T19:23:14.403Z',
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                TimestampLessThan: '2019-09-19T19:23:14.403Z',
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -746,11 +989,16 @@ describe('operations', () => {
         it('Successful match greater than', () => {
           // Arrange
           const nextKey = 'Success';
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            TimestampLessThanEquals: '2019-09-19T20:23:14.403Z',
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                TimestampLessThanEquals: '2019-09-19T20:23:14.403Z',
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -762,11 +1010,16 @@ describe('operations', () => {
         it('Successful match equals', () => {
           // Arrange
           const nextKey = 'Success';
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            TimestampLessThanEquals: '2019-09-19T19:23:14.403Z',
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                TimestampLessThanEquals: '2019-09-19T19:23:14.403Z',
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
@@ -777,11 +1030,16 @@ describe('operations', () => {
 
         it('Unsuccessful match', () => {
           // Arrange
-          const definition = buildChoice([{
-            Variable: '$.testMe',
-            TimestampLessThanEquals: '2019-09-19T19:23:14.403Z',
-            Next: 'Success',
-          }], 'default');
+          const definition = buildChoice(
+            [
+              {
+                Variable: '$.testMe',
+                TimestampLessThanEquals: '2019-09-19T19:23:14.403Z',
+                Next: 'Success',
+              },
+            ],
+            'default',
+          );
           const metadata = {
             id: 'operationId',
             execution: 'executionId',
