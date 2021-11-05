@@ -8,4 +8,5 @@ RUN npm install --only=prod
 COPY . .
 EXPOSE 8888
 
-CMD [ "node", "./bin/server" ]
+ENTRYPOINT [ "node", "./bin/entrypoint" ]
+CMD [ "server" ]

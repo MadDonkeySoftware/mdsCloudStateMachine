@@ -1,164 +1,176 @@
 const mdsSdk = require('@maddonkeysoftware/mds-cloud-sdk-node');
+
 const globals = require('../globals');
 const repos = require('../repos');
 const operations = require('../operations');
-const Queue = require('./queue');
 const enums = require('../enums');
 
 const internalQueueInterval = process.env.QUEUE_INTERVAL || 50;
 const batchProcessingSize = 1;
-const pendingQueueName = process.env.PENDING_QUEUE_NAME || 'mds-sm-pendingQueue';
-const inFlightQueueName = process.env.IN_FLIGHT_QUEUE_NAME || 'mds-sm-inFlightQueue';
 const logger = globals.getLogger();
 
-// This is the general queue that new invocations from the HTTP endpoints are sent to.
-// They are lesser priority than in-flight work.
-const pendingQueue = new Queue(pendingQueueName);
+const self = {
+  /**
+   * The mds queue client used for queue interactions.
+   */
+  _queueClient: undefined,
 
-// This is the queue for executions that are currently in flight. We try to get executions
-// that are mid flight out the way before starting "pending" work.
-const inFlightQueue = new Queue(inFlightQueueName);
+  /**
+   * Indicator for if messages should continue to be processed.
+   */
+  _running: false,
 
-let running = false;
-const handleAppShutdown = () => { running = false; };
+  /**
+   * Handles gracefully telling child processes to stop.
+   */
+  handleAppShutdown: () => { self._running = false; },
 
-const handleOpCompleted = (operationId, executionId, runData) => {
-  logger.trace({ operationId, executionId, runData: runData || 'N/A' }, 'Handling operation completed');
-  if (runData) {
-    const { output, nextOpId, next } = runData;
-    logger.trace({ operationId, output }, 'Operation completed.');
-    return repos.updateOperation(operationId, 'Succeeded', output)
-      .then(() => next && inFlightQueue.enqueue({ executionId, operationId: nextOpId }))
-      .catch((err) => logger.warn({ err }, 'Set up next operation failed'));
-  }
+  _handleOpCompleted: async (operationId, executionId, runData) => {
+    logger.trace({ operationId, executionId, runData: runData || 'N/A' }, 'Handling operation completed');
+    if (runData) {
+      const { output, nextOpId, next } = runData;
+      logger.trace({ operationId, output }, 'Operation completed.');
+      try {
+        await repos.updateOperation(operationId, 'Succeeded', output);
+        if (next) {
+          const message = { executionId, operationId: nextOpId };
+          await self._queueClient.enqueueMessage(globals.getEnvVar('IN_FLIGHT_QUEUE_NAME'), message);
+        }
+      } catch (err) {
+        logger.warn({ err }, 'Set up next operation failed');
+      }
+    }
 
-  return Promise.resolve();
-};
+    return undefined;
+  },
 
-const buildOperationDataBundle = (metadata) => (
-  repos.getStateMachineDefinitionForExecution(metadata.execution)
-    .then((definition) => ({ metadata, definition })));
+  _buildOperationDataBundle: async (metadata) => {
+    const definition = await repos.getStateMachineDefinitionForExecution(metadata.execution);
+    return { metadata, definition };
+  },
 
-const invokeOperation = (data) => {
-  const { definition, metadata } = data;
-  const t = operations.getOperation(definition, metadata);
-  const operationId = metadata.id;
-  const executionId = metadata.execution;
+  _invokeOperation: async (data) => {
+    const { definition, metadata } = data;
+    const t = operations.getOperation(definition, metadata);
+    const operationId = metadata.id;
+    const executionId = metadata.execution;
 
-  repos.updateOperation(operationId, 'Executing')
-    .then(() => t.run())
-    .then((runData) => handleOpCompleted(operationId, executionId, runData))
-    .catch((err) => logger.warn({ err }, 'operation run failed'));
-};
+    try {
+      await repos.updateOperation(operationId, 'Executing');
+      const runData = await t.run();
+      await self._handleOpCompleted(operationId, executionId, runData);
+    } catch (err) {
+      logger.warn({ err }, 'operation run failed');
+    }
+  },
 
-const processMessage = (message) => {
-  logger.trace({ message }, 'Processing message');
-  const event = JSON.parse(message.message);
-  if (event.fromInvoke) {
-    repos.updateExecution(event.executionId, 'Executing');
-  }
-
-  // TODO: Check to see if execution is cancelled.
-
-  repos.getOperation(event.operationId)
-    .then((operation) => buildOperationDataBundle(operation))
-    .then((data) => invokeOperation(data))
-    .catch((err) => logger.warn({ err }, 'process event failed'));
-};
-
-const pullMessageFromQueue = (queue, limit, runningData) => {
-  const data = runningData || { count: 0 };
-
-  if (data.count < limit) {
-    return queue.dequeue().then((message) => {
-      // TODO: Deleting the message here may not be the best idea.
-      // Entertain moving it to processMessage.
-      if (message) {
-        return queue.delete(message.id).then(() => message);
+  _processMessage: async (message) => {
+    try {
+      logger.trace({ message }, 'Processing message');
+      const event = JSON.parse(message.message);
+      if (event.fromInvoke) {
+        repos.updateExecution(event.executionId, 'Executing');
       }
 
-      return message;
-    }).then((message) => {
-      if (message) {
-        processMessage(message);
-        data.count += 1;
-        return pullMessageFromQueue(queue, limit, data);
-      }
+      // TODO: Check to see if execution is cancelled.
 
+      const operation = await repos.getOperation(event.operationId);
+      const data = await self._buildOperationDataBundle(operation);
+      return self._invokeOperation(data);
+    } catch (err) {
+      logger.warn({ err }, 'process event failed');
+    }
+    return undefined;
+  },
+
+  _pullMessageFromQueue: async (queueOrid, limit, runningData) => {
+    const data = runningData || { count: 0 };
+
+    try {
+      if (data.count < limit) {
+        const message = await self._queueClient.fetchMessage(queueOrid);
+        if (message) {
+          // TODO: Deleting the message here may not be the best idea.
+          // Entertain moving it to processMessage.
+          await self._queueClient.deleteMessage(queueOrid, message.id);
+          self._processMessage(message);
+          data.count += 1;
+          return self._pullMessageFromQueue(queueOrid, limit, data);
+        }
+        data.needMore = true;
+      }
+    } catch (err) {
+      // TODO: mdsSdk does not handle the service not being available gracefully
+      // For now we ignore errors. Once this is resolved we should remove this try catch.
       data.needMore = true;
-      return Promise.resolve(data);
-    });
-  }
-
-  return Promise.resolve(data);
-};
-
-const processMessages = () => {
-  /*
-  let count = 0;
-  if (inFlightQueue.size() > 0) {
-    while (count < batchProcessingSize && inFlightQueue.size() > 0) {
-      const message = inFlightQueue.dequeue();
-      processMessage(message);
-      count += 1;
     }
-  }
 
-  if (pendingQueue.size() > 0) {
-    while (count < batchProcessingSize && pendingQueue.size() > 0) {
-      const message = pendingQueue.dequeue();
-      processMessage(message);
-      count += 1;
+    return data;
+  },
+
+  _processMessages: async () => {
+    const data = await self._pullMessageFromQueue(
+      globals.getEnvVar('IN_FLIGHT_QUEUE_NAME'),
+      batchProcessingSize,
+    );
+
+    if (data.needMore) {
+      await self._pullMessageFromQueue(
+        globals.getEnvVar('PENDING_QUEUE_NAME'),
+        batchProcessingSize,
+        data,
+      );
     }
-  }
 
-  if (running) {
-    globals.delay(internalQueueInterval).then(() => processMessages());
-  }
-  */
-  pullMessageFromQueue(inFlightQueue, batchProcessingSize)
-    .then((data) => data.needMore && pullMessageFromQueue(pendingQueue, batchProcessingSize, data))
-    .then(() => running && globals.delay(internalQueueInterval).then(() => processMessages()));
-};
+    if (self._running) {
+      await globals.delay(internalQueueInterval);
+      self._processMessages();
+    }
+  },
 
-const enqueueDelayedMessages = () => {
-  repos.getDelayedOperations(new Date().toISOString()).then((allDelayed) => {
+  _enqueueDelayedMessages: async () => {
+    const allDelayed = await repos.getDelayedOperations(new Date().toISOString());
     allDelayed.forEach((delayed) => repos.updateOperation(delayed.id, enums.OP_STATUS.Pending)
-      .then(() => inFlightQueue.enqueue({
-        executionId: delayed.execution,
-        operationId: delayed.id,
-      })));
-  });
+      .then(() => self._queueClient.enqueueMessage(
+        globals.getEnvVar('IN_FLIGHT_QUEUE_NAME'),
+        {
+          executionId: delayed.execution,
+          operationId: delayed.id,
+        },
+      )));
 
-  if (running) {
-    globals.delay(internalQueueInterval).then(() => enqueueDelayedMessages());
-  }
+    if (self._running) {
+      globals.delay(internalQueueInterval).then(() => self._enqueueDelayedMessages());
+    }
+  },
+
+  enqueueMessage: async (message) => {
+    logger.trace({ message }, 'Enqueueing message');
+    return self._client.enqueueMessage(globals.getEnvVar('PENDING_QUEUE_NAME'), message);
+  },
+
+  /**
+   * Initializes required items and starts the workers internal processes.
+   */
+  startWorker: async () => {
+    if (!self._running) {
+      logger.info('Starting worker.');
+
+      if (!globals.getEnvVar('PENDING_QUEUE_NAME')) {
+        throw new Error('Pending queue ORID missing. Please set environment variable PENDING_QUEUE_NAME');
+      }
+
+      if (!globals.getEnvVar('IN_FLIGHT_QUEUE_NAME')) {
+        throw new Error('Pending queue ORID missing. Please set environment variable IN_FLIGHT_QUEUE_NAME');
+      }
+
+      self._running = true;
+      self._queueClient = await mdsSdk.getQueueServiceClient();
+
+      globals.delay(internalQueueInterval).then(() => self._processMessages());
+      globals.delay(internalQueueInterval).then(() => self._enqueueDelayedMessages());
+    }
+  },
 };
 
-const enqueueMessage = (message) => {
-  logger.trace({ message }, 'Enqueueing message');
-  return pendingQueue.enqueue(message);
-};
-
-const startWorker = async () => {
-  if (!running) {
-    logger.trace('Starting internal worker.');
-    await mdsSdk.initialize({
-      identityUrl: process.env.MDS_IDENTITY_URL,
-      account: process.env.MDS_SM_SYS_ACCOUNT,
-      userId: process.env.MDS_SM_SYS_USER,
-      password: process.env.MDS_SM_SYS_PASSWORD,
-      sfUrl: process.env.MDS_SM_SF_URL,
-      qsUrl: process.env.MDS_SM_QS_URL,
-    });
-    running = true;
-    globals.delay(internalQueueInterval).then(() => processMessages());
-    globals.delay(internalQueueInterval).then(() => enqueueDelayedMessages());
-  }
-};
-
-module.exports = {
-  handleAppShutdown,
-  enqueueMessage,
-  startWorker,
-};
+module.exports = self;

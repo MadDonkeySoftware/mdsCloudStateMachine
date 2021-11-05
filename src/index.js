@@ -1,9 +1,7 @@
-const bodyParser = require('body-parser');
 const express = require('express');
 
 const globals = require('./globals');
 const handlers = require('./handlers');
-const appShutdown = require('./handlers/app_shutdown');
 
 const buildApp = () => {
   const logger = globals.getLogger();
@@ -30,10 +28,9 @@ const buildApp = () => {
 
   app.use(requestLogger);
   app.use(commonResponseSetup);
-  app.use(bodyParser.json());
-  app.use(bodyParser.text());
+  app.use(express.json());
+  app.use(express.text());
   configureRoutes(app);
-  appShutdown.wire();
 
   return app;
 };

@@ -1,9 +1,10 @@
 const express = require('express');
 const orid = require('@maddonkeysoftware/orid-node');
+const mdsSdk = require('@maddonkeysoftware/mds-cloud-sdk-node');
 const _ = require('lodash');
 
 const repos = require('../repos');
-const workers = require('../workers');
+// const workers = require('../workers');
 const globals = require('../globals');
 const handlerHelpers = require('./handler-helpers');
 
@@ -107,7 +108,7 @@ const getStateMachine = (request, response) => {
   });
 };
 
-const invokeStateMachine = (request, response) => {
+const invokeStateMachine = async (request, response) => {
   const { body } = request;
   const executionId = globals.newUuid();
   const operationId = globals.newUuid();
@@ -116,27 +117,26 @@ const invokeStateMachine = (request, response) => {
   const { resourceId } = requestOrid;
   const accountId = requestOrid.custom3;
 
-  return repos.getStateMachine(resourceId)
-    .then((machine) => {
-      if (machine) {
-        return repos.createExecution(executionId, machine.active_version)
-          .then(() => repos.createOperation(
-            operationId,
-            executionId,
-            machine.definition.StartAt,
-            body,
-          ))
-          .then(() => workers.enqueueMessage({ executionId, operationId, fromInvoke: true }))
-          .then(() => {
-            response.send(JSON.stringify({
-              orid: makeOrid(resourceId, accountId, executionId),
-            }));
-          });
-      }
-      response.status(404);
-      response.send();
-      return undefined;
-    });
+  const queueClient = await mdsSdk.getQueueServiceClient();
+  const machine = await repos.getStateMachine(resourceId);
+  if (machine) {
+    await repos.createExecution(executionId, machine.active_version);
+    await repos.createOperation(
+      operationId,
+      executionId,
+      machine.definition.StartAt,
+      body,
+    );
+    await queueClient.enqueueMessage(
+      globals.getEnvVar('PENDING_QUEUE_NAME'),
+      { executionId, operationId, fromInvoke: true },
+    );
+    return handlerHelpers.sendResponse(response, 200, JSON.stringify({
+      orid: makeOrid(resourceId, accountId, executionId),
+    }));
+  }
+
+  return handlerHelpers.sendResponse(response, 404);
 };
 
 const getDetailsForExecution = (request, response) => {
