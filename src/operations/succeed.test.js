@@ -5,7 +5,7 @@ const enums = require('../enums');
 const repos = require('../repos');
 const Succeed = require('./succeed');
 
-describe('operations', () => {
+describe(__filename, () => {
   const definition = {
     Type: 'Succeed',
   };
@@ -58,7 +58,12 @@ describe('operations', () => {
           chai.expect(updateExecutionStub.getCalls().length).to.be.equal(1);
           chai
             .expect(updateOperationStub.getCall(0).args)
-            .to.be.eql(['operationId', enums.OP_STATUS.Succeeded, undefined]);
+            .to.be.eql([
+              'operationId',
+              'executionId',
+              enums.OP_STATUS.Succeeded,
+              undefined,
+            ]);
           chai
             .expect(updateExecutionStub.getCall(0).args)
             .to.be.eql(['executionId', enums.OP_STATUS.Succeeded]);
@@ -87,7 +92,12 @@ describe('operations', () => {
           chai.expect(updateExecutionStub.getCalls().length).to.be.equal(1);
           chai
             .expect(updateOperationStub.getCall(0).args)
-            .to.be.eql(['operationId', enums.OP_STATUS.Succeeded, null]);
+            .to.be.eql([
+              'operationId',
+              'executionId',
+              enums.OP_STATUS.Succeeded,
+              null,
+            ]);
           chai
             .expect(updateExecutionStub.getCall(0).args)
             .to.be.eql(['executionId', enums.OP_STATUS.Succeeded]);
@@ -116,7 +126,12 @@ describe('operations', () => {
           chai.expect(updateExecutionStub.getCalls().length).to.be.equal(1);
           chai
             .expect(updateOperationStub.getCall(0).args)
-            .to.be.eql(['operationId', enums.OP_STATUS.Succeeded, 'abc']);
+            .to.be.eql([
+              'operationId',
+              'executionId',
+              enums.OP_STATUS.Succeeded,
+              'abc',
+            ]);
           chai
             .expect(updateExecutionStub.getCall(0).args)
             .to.be.eql(['executionId', enums.OP_STATUS.Succeeded]);
@@ -147,6 +162,7 @@ describe('operations', () => {
             .expect(updateOperationStub.getCall(0).args)
             .to.be.eql([
               'operationId',
+              'executionId',
               enums.OP_STATUS.Succeeded,
               metadata.input,
             ]);

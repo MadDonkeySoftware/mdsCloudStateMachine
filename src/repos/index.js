@@ -1,150 +1,259 @@
-// All interactions with any storage mechanism should go through a "top level"
-// repository such as this module. Implementation details should be hidden from
-// callers to make supporting different stores as easy as possible.
-const sqliteDb = require('./sqlite3');
-const mysqlDb = require('./mysql');
+const _ = require('lodash');
+const { MongoClient } = require('mongodb');
+const { DateTime } = require('luxon');
 
-const initializeSqliteDb = () => {
-  const getDb = () => sqliteDb.getDb();
+const globals = require('../globals');
+const enums = require('../enums');
 
-  const handleAppShutdown = () => getDb().then((db) => db.close());
+const self = {
+  // NOTE: The signatures here may be a bit "funky" since this was originally
+  // designed against a relational DB.
+  _client: undefined,
 
-  const getStateMachines = (accountId) =>
-    getDb().then((db) => sqliteDb.getStateMachines(db, accountId));
-  const createStateMachine = (id, accountId, name, definition) =>
-    getDb().then((db) =>
-      sqliteDb.createStateMachine(db, id, accountId, name, definition),
+  _getDb: async () => {
+    if (!self._client) {
+      const connOpts = { useNewUrlParser: true, useUnifiedTopology: true };
+      const client = await MongoClient(
+        globals.getEnvVar('FN_SM_DB_URL', ''),
+        connOpts,
+      );
+      await client.connect();
+      self._client = client;
+    }
+
+    return self._client.db('mds-sm');
+  },
+
+  handleAppShutdown: async () => {
+    if (self._client) {
+      await self._client.close();
+    }
+  },
+
+  getStateMachines: async (accountId) => {
+    const db = await self._getDb();
+    const collection = db.collection('StateMachines');
+    const data = await collection
+      .find({ accountId, isDeleted: false })
+      .toArray();
+    // TODO: remove _ keys once mdsCli/mdsSdk has been updated to handle it.
+    const result = {};
+    data.forEach((sm) => {
+      result[sm.name] = {
+        name: sm.name,
+        id: sm.id,
+        active_version: sm.activeVersion,
+        activeVersion: sm.activeVersion,
+        is_deleted: false,
+        isDeleted: false,
+      };
+    });
+    return result;
+  },
+
+  createStateMachine: async (id, accountId, name, definitionObject) => {
+    const versionId = globals.newUuid();
+    const db = await self._getDb();
+    const stateMachinesCol = db.collection('StateMachines');
+
+    await stateMachinesCol.insertOne({
+      id,
+      accountId,
+      name,
+      activeVersion: versionId,
+      isDeleted: false,
+      versions: [
+        {
+          id: versionId,
+          definition: definitionObject,
+        },
+      ],
+    });
+  },
+
+  getStateMachine: async (id) => {
+    const db = await self._getDb();
+    const collection = db.collection('StateMachines');
+    const data = await collection.findOne({ id, isDeleted: false });
+    // TODO: remove _ keys once mdsCli/mdsSdk has been updated to handle it.
+    const activeDefinition = _.find(
+      data.versions,
+      (v) => v.id === data.activeVersion,
     );
-  const getStateMachine = (id) =>
-    getDb().then((db) => sqliteDb.getStateMachine(db, id));
-  const updateStateMachine = (id, definition) =>
-    getDb().then((db) => sqliteDb.updateStateMachine(db, id, definition));
-  const removeStateMachine = () => getDb().then(() => undefined); // HACK: Sqlite3 to be deprecated.
+    data.definition = activeDefinition.definition;
+    return data;
+  },
 
-  const createExecution = (id, versionId) =>
-    getDb().then((db) => sqliteDb.createExecution(db, id, versionId));
-  const updateExecution = (id, status) =>
-    getDb().then((db) => sqliteDb.updateExecution(db, id, status));
-  const getExecution = (id) =>
-    getDb().then((db) => sqliteDb.getExecution(db, id));
-  const getStateMachineDefinitionForExecution = (id) =>
-    getDb().then((db) =>
-      sqliteDb.getStateMachineDefinitionForExecution(db, id),
+  updateStateMachine: async (id, definitionObject) => {
+    const versionId = globals.newUuid();
+    const db = await self._getDb();
+    const stateMachinesCol = db.collection('StateMachines');
+    await stateMachinesCol.updateOne(
+      { id },
+      {
+        $set: { activeVersion: versionId },
+        $addToSet: {
+          versions: {
+            id: versionId,
+            definition: definitionObject,
+          },
+        },
+      },
     );
-  const getDetailsForExecution = (id) =>
-    getDb().then((db) => sqliteDb.getDetailsForExecution(db, id));
+  },
 
-  const createOperation = (id, executionId, stateKey, input) =>
-    getDb().then((db) =>
-      sqliteDb.createOperation(db, id, executionId, stateKey, input),
+  removeStateMachine: async (id) => {
+    // TODO: set up index that will auto-remove the document after the TTL expires
+    const db = await self._getDb();
+    const stateMachinesCol = db.collection('StateMachines');
+    const expires = DateTime.now().plus({ years: 1 });
+    await stateMachinesCol.updateOne(
+      { id },
+      { $set: { isDeleted: true, removeAt: expires } },
     );
-  const updateOperation = (id, state, output) =>
-    getDb().then((db) => sqliteDb.updateOperation(db, id, state, output));
-  const delayOperation = (id, waitUtilUtc) =>
-    getDb().then((db) => sqliteDb.delayOperation(db, id, waitUtilUtc));
-  const getOperation = (id) =>
-    getDb().then((db) => sqliteDb.getOperation(db, id));
-  const getDelayedOperations = (waitUtilUtc) =>
-    getDb().then((db) => sqliteDb.getDelayedOperations(db, waitUtilUtc));
+  },
 
-  return {
-    handleAppShutdown,
-    getStateMachines,
-    createStateMachine,
-    getStateMachine,
-    updateStateMachine,
-    removeStateMachine,
-    createExecution,
-    updateExecution,
-    getExecution,
-    getStateMachineDefinitionForExecution,
-    getDetailsForExecution,
-    createOperation,
-    updateOperation,
-    delayOperation,
-    getOperation,
-    getDelayedOperations,
-  };
+  createExecution: async (id, stateMachineId, versionId) => {
+    const db = await self._getDb();
+    const collection = db.collection('Executions');
+
+    await collection.insertOne({
+      id,
+      created: new Date().toISOString(),
+      status: enums.OP_STATUS.Pending,
+      stateMachine: stateMachineId,
+      version: versionId,
+      operations: [],
+    });
+  },
+
+  updateExecution: async (id, status) => {
+    const db = await self._getDb();
+    const collection = db.collection('Executions');
+    await collection.updateOne(
+      { id },
+      {
+        $set: { status },
+      },
+    );
+  },
+
+  getExecution: async (id) => {
+    const db = await self._getDb();
+    const collection = db.collection('Executions');
+    const data = await collection.findOne({ id });
+    return data;
+  },
+
+  getStateMachineDefinitionForExecution: async (id) => {
+    // NOTE: Look into using "$lookup" operator
+    const db = await self._getDb();
+    const executionsCol = db.collection('Executions');
+    const stateMachinesCol = db.collection('StateMachines');
+
+    const execution = await executionsCol.findOne({ id });
+    const stateMachine = await stateMachinesCol.findOne({
+      id: execution.stateMachine,
+    });
+
+    const definition = _.find(
+      stateMachine.versions,
+      (v) => v.id === execution.version,
+    );
+    return definition.definition;
+  },
+
+  getDetailsForExecution: async (id) => {
+    // TODO: deprecate this as it's now pointless
+    return self.getExecution(id);
+  },
+
+  createOperation: async (id, executionId, stateKey, input) => {
+    const db = await self._getDb();
+    const collection = db.collection('Executions');
+    await collection.updateOne(
+      { id: executionId },
+      {
+        $addToSet: {
+          operations: {
+            id,
+            created: new Date().toISOString(),
+            stateKey,
+            status: enums.OP_STATUS.Pending,
+            input,
+            output: null,
+          },
+        },
+      },
+    );
+  },
+
+  updateOperation: async (id, executionId, status, output) => {
+    const db = await self._getDb();
+    const collection = db.collection('Executions');
+    await collection.updateOne(
+      { id: executionId, 'operations.id': id },
+      {
+        $set: {
+          'operations.$.status': status,
+          'operations.$.output': output,
+        },
+      },
+    );
+  },
+
+  delayOperation: async (id, executionId, waitUntilUtc) => {
+    // TODO: Consider updating waitUntilUtc to an EPOC
+    const db = await self._getDb();
+    const collection = db.collection('Executions');
+    await collection.updateOne(
+      { id: executionId, 'operations.id': id },
+      {
+        $set: {
+          'operations.$.status': enums.OP_STATUS.Waiting,
+          'operations.$.waitUntilUtc': waitUntilUtc,
+        },
+      },
+    );
+  },
+
+  getOperation: async (id, executionId) => {
+    const db = await self._getDb();
+    const collection = db.collection('Executions');
+    const data = await collection.findOne({ id: executionId });
+    const operation = _.find(data.operations, (o) => o.id === id);
+    operation.execution = executionId;
+    return operation;
+  },
+
+  getDelayedOperations: async (waitUntilUtc) => {
+    // TODO: Consider updating waitUntilUtc to an EPOC
+    // TODO: if there's a better way to do this with a projection try it.
+    const db = await self._getDb();
+    const collection = db.collection('Executions');
+    const sets = [];
+    const data = await collection
+      .find({
+        'operations.waitUntilUtc': { $lt: waitUntilUtc },
+      })
+      .toArray();
+
+    for (let i = 0; i < data.length; i += 1) {
+      const exec = data[i];
+      for (let j = 0; j < exec.operations.length; j += 1) {
+        const op = exec.operations[j];
+        if (
+          op.waitUntilUtc &&
+          op.status === enums.OP_STATUS.Waiting &&
+          op.waitUntilUtc < waitUntilUtc
+        ) {
+          sets.push({ execution: exec.id, id: op.id });
+        }
+      }
+    }
+    // return array of id, execution
+    return sets;
+  },
 };
 
-const initializeMysqlDb = () => {
-  const getDb = () => mysqlDb.getDb();
-
-  const handleAppShutdown = () => getDb().then((db) => db.close());
-
-  const getStateMachines = (accountId) =>
-    getDb().then((db) => mysqlDb.getStateMachines(db, accountId));
-  const createStateMachine = (id, accountId, name, definition) =>
-    getDb().then((db) =>
-      mysqlDb.createStateMachine(db, id, accountId, name, definition),
-    );
-  const getStateMachine = (id) =>
-    getDb().then((db) => mysqlDb.getStateMachine(db, id));
-  const updateStateMachine = (id, definition) =>
-    getDb().then((db) => mysqlDb.updateStateMachine(db, id, definition));
-  const removeStateMachine = (id) =>
-    getDb().then((db) => mysqlDb.removeStateMachine(db, id));
-
-  const createExecution = (id, versionId) =>
-    getDb().then((db) => mysqlDb.createExecution(db, id, versionId));
-  const updateExecution = (id, status) =>
-    getDb().then((db) => mysqlDb.updateExecution(db, id, status));
-  const getExecution = (id) =>
-    getDb().then((db) => mysqlDb.getExecution(db, id));
-  const getStateMachineDefinitionForExecution = (id) =>
-    getDb().then((db) => mysqlDb.getStateMachineDefinitionForExecution(db, id));
-  const getDetailsForExecution = (id) =>
-    getDb().then((db) => mysqlDb.getDetailsForExecution(db, id));
-
-  const createOperation = (id, executionId, stateKey, input) =>
-    getDb().then((db) =>
-      mysqlDb.createOperation(db, id, executionId, stateKey, input),
-    );
-  const updateOperation = (id, state, output) =>
-    getDb().then((db) => mysqlDb.updateOperation(db, id, state, output));
-  const delayOperation = (id, waitUtilUtc) =>
-    getDb().then((db) => mysqlDb.delayOperation(db, id, waitUtilUtc));
-  const getOperation = (id) =>
-    getDb().then((db) => mysqlDb.getOperation(db, id));
-  const getDelayedOperations = (waitUtilUtc) =>
-    getDb().then((db) => mysqlDb.getDelayedOperations(db, waitUtilUtc));
-
-  return {
-    handleAppShutdown,
-    getStateMachines,
-    createStateMachine,
-    getStateMachine,
-    updateStateMachine,
-    removeStateMachine,
-    createExecution,
-    updateExecution,
-    getExecution,
-    getStateMachineDefinitionForExecution,
-    getDetailsForExecution,
-    createOperation,
-    updateOperation,
-    delayOperation,
-    getOperation,
-    getDelayedOperations,
-  };
-};
-
-const initializeDatabase = () => {
-  // TODO: Depricate sqlite and mysql
-  // TODO: Implement mongodb
-  if (
-    !process.env.FN_SM_DB_URL ||
-    process.env.FN_SM_DB_URL.startsWith('sqlite3://')
-  ) {
-    return initializeSqliteDb();
-  }
-
-  if (process.env.FN_SM_DB_URL.startsWith('mysql://')) {
-    return initializeMysqlDb();
-  }
-  throw new Error(
-    `Database not configured properly. "${process.env.FN_SM_DB_URL}" not understood.`,
-  );
-};
-
-module.exports = initializeDatabase();
+module.exports = self;

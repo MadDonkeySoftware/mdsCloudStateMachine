@@ -33,7 +33,12 @@ const handleInvokeResponse = (that, result, err) => {
         if (errs.length === 1 && errs[0] === 'States.ALL') {
           logger.trace({ err }, 'Function invoke failed.');
           return repos
-            .updateOperation(operationId, enums.OP_STATUS.Failed, input)
+            .updateOperation(
+              operationId,
+              executionId,
+              enums.OP_STATUS.Failed,
+              input,
+            )
             .then(
               () =>
                 errNext &&
@@ -49,17 +54,22 @@ const handleInvokeResponse = (that, result, err) => {
     }
 
     return repos
-      .updateOperation(operationId, enums.OP_STATUS.Failed, input)
+      .updateOperation(operationId, executionId, enums.OP_STATUS.Failed, input)
       .then(() => repos.updateExecution(executionId, enums.OP_STATUS.Failed))
       .then(() => {
         throw err;
       });
   }
 
-  const output = JSON.stringify(result);
+  const output = result;
 
   return repos
-    .updateOperation(operationId, enums.OP_STATUS.Succeeded, output)
+    .updateOperation(
+      operationId,
+      executionId,
+      enums.OP_STATUS.Succeeded,
+      output,
+    )
     .then(
       () => next && repos.createOperation(nextOpId, executionId, next, output),
     )
@@ -85,7 +95,11 @@ Task.prototype.run = function run() {
   logger.trace({ body }, 'Invoking remote function.');
 
   return repos
-    .updateOperation(this.operationId, enums.OP_STATUS.Executing)
+    .updateOperation(
+      this.operationId,
+      this.executionId,
+      enums.OP_STATUS.Executing,
+    )
     .then(() => invokeFunction(this.resource, body))
     .then((result) => handleInvokeResponse(this, result))
     .catch((err) => handleInvokeResponse(this, undefined, err));

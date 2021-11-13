@@ -10,7 +10,7 @@ const Task = require('./task');
 
 chai.use(chaiExclude);
 
-describe('operations', () => {
+describe(__filename, () => {
   const definition = {
     Type: 'Task',
     Resource: 'orid:1::::1:sf:some-id',
@@ -87,7 +87,7 @@ describe('operations', () => {
         chai.expect(createOperationStub.getCalls().length).to.be.equal(0);
         chai
           .expect(updateOperationStub.getCall(0).args)
-          .to.be.eql(['operationId', enums.OP_STATUS.Executing]);
+          .to.be.eql(['operationId', 'executionId', enums.OP_STATUS.Executing]);
         chai.expect(updateExecutionStub.getCalls().length).to.be.equal(1);
         chai
           .expect(updateExecutionStub.getCall(0).args)
@@ -137,13 +137,18 @@ describe('operations', () => {
           chai.expect(createOperationStub.getCalls().length).to.be.equal(1);
           chai
             .expect(updateOperationStub.getCall(0).args)
-            .to.be.eql(['operationId', enums.OP_STATUS.Executing]);
+            .to.be.eql([
+              'operationId',
+              'executionId',
+              enums.OP_STATUS.Executing,
+            ]);
           chai
             .expect(updateOperationStub.getCall(1).args)
             .to.be.eql([
               'operationId',
+              'executionId',
               enums.OP_STATUS.Succeeded,
-              JSON.stringify(expectedOutput),
+              expectedOutput,
             ]);
           chai
             .expect(createOperationStub.getCall(0).args)
@@ -151,13 +156,13 @@ describe('operations', () => {
               'nextOpId',
               'executionId',
               definition.Next,
-              JSON.stringify(expectedOutput),
+              expectedOutput,
             ]);
           chai.expect(updateExecutionStub.getCalls().length).to.be.equal(0);
           chai.expect(thenResult).to.be.eql({
             next: definition.Next,
             nextOpId: 'nextOpId',
-            output: JSON.stringify(expectedOutput),
+            output: expectedOutput,
           });
         });
       });
@@ -203,13 +208,18 @@ describe('operations', () => {
           chai.expect(createOperationStub.getCalls().length).to.be.equal(1);
           chai
             .expect(updateOperationStub.getCall(0).args)
-            .to.be.eql(['operationId', enums.OP_STATUS.Executing]);
+            .to.be.eql([
+              'operationId',
+              'executionId',
+              enums.OP_STATUS.Executing,
+            ]);
           chai
             .expect(updateOperationStub.getCall(1).args)
             .to.be.eql([
               'operationId',
+              'executionId',
               enums.OP_STATUS.Succeeded,
-              JSON.stringify(expectedOutput),
+              expectedOutput,
             ]);
           chai
             .expect(createOperationStub.getCall(0).args)
@@ -217,13 +227,13 @@ describe('operations', () => {
               'nextOpId',
               'executionId',
               definition.Next,
-              JSON.stringify(expectedOutput),
+              expectedOutput,
             ]);
           chai.expect(updateExecutionStub.getCalls().length).to.be.equal(0);
           chai.expect(thenResult).to.be.eql({
             next: definition.Next,
             nextOpId: 'nextOpId',
-            output: JSON.stringify(expectedOutput),
+            output: expectedOutput,
           });
         });
       });
@@ -269,13 +279,18 @@ describe('operations', () => {
           chai.expect(createOperationStub.getCalls().length).to.be.equal(1);
           chai
             .expect(updateOperationStub.getCall(0).args)
-            .to.be.eql(['operationId', enums.OP_STATUS.Executing]);
+            .to.be.eql([
+              'operationId',
+              'executionId',
+              enums.OP_STATUS.Executing,
+            ]);
           chai
             .expect(updateOperationStub.getCall(1).args)
             .to.be.eql([
               'operationId',
+              'executionId',
               enums.OP_STATUS.Succeeded,
-              JSON.stringify(expectedOutput),
+              expectedOutput,
             ]);
           chai
             .expect(createOperationStub.getCall(0).args)
@@ -283,13 +298,13 @@ describe('operations', () => {
               'nextOpId',
               'executionId',
               definition.Next,
-              JSON.stringify(expectedOutput),
+              expectedOutput,
             ]);
           chai.expect(updateExecutionStub.getCalls().length).to.be.equal(0);
           chai.expect(thenResult).to.be.eql({
             next: definition.Next,
             nextOpId: 'nextOpId',
-            output: JSON.stringify(expectedOutput),
+            output: expectedOutput,
           });
         });
       });
@@ -335,13 +350,18 @@ describe('operations', () => {
           chai.expect(createOperationStub.getCalls().length).to.be.equal(1);
           chai
             .expect(updateOperationStub.getCall(0).args)
-            .to.be.eql(['operationId', enums.OP_STATUS.Executing]);
+            .to.be.eql([
+              'operationId',
+              'executionId',
+              enums.OP_STATUS.Executing,
+            ]);
           chai
             .expect(updateOperationStub.getCall(1).args)
             .to.be.eql([
               'operationId',
+              'executionId',
               enums.OP_STATUS.Succeeded,
-              JSON.stringify(expectedOutput),
+              expectedOutput,
             ]);
           chai
             .expect(createOperationStub.getCall(0).args)
@@ -349,13 +369,13 @@ describe('operations', () => {
               'nextOpId',
               'executionId',
               definition.Next,
-              JSON.stringify(expectedOutput),
+              expectedOutput,
             ]);
           chai.expect(updateExecutionStub.getCalls().length).to.be.equal(0);
           chai.expect(thenResult).to.be.eql({
             next: definition.Next,
             nextOpId: 'nextOpId',
-            output: JSON.stringify(expectedOutput),
+            output: expectedOutput,
           });
         });
       });

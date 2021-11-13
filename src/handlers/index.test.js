@@ -7,7 +7,7 @@ const src = require('..');
 const repos = require('../repos');
 const handlerHelpers = require('./handler-helpers');
 
-describe('src/handlers/index', () => {
+describe(__filename, () => {
   beforeEach(() => {
     sinon.stub(handlerHelpers, 'getIssuer').returns('testIssuer');
     sinon
@@ -63,7 +63,7 @@ describe('src/handlers/index', () => {
             {
               id: 1,
               name: 'fooBar',
-              orid: 'orid:1::::1:sm:1',
+              orid: 'orid:1:testIssuer:::1:sm:1',
             },
           ]);
         });
@@ -93,7 +93,7 @@ describe('src/handlers/index', () => {
           const body = JSON.parse(resp.text);
           chai.expect(body).to.deep.eql({
             name: 'fooBar',
-            orid: 'orid:1::::1:sm:test',
+            orid: `orid:1:testIssuer:::1:sm:test`,
           });
         });
     });

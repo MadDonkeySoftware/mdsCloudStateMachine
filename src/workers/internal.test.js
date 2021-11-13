@@ -110,7 +110,7 @@ describe(__filename, () => {
   });
 
   describe('_invokeOperation', () => {
-    it('', async () => {
+    it('updates operation as expected', async () => {
       // Arrange
       const testData = {
         definition: {},
@@ -136,7 +136,7 @@ describe(__filename, () => {
       chai.expect(opCompletedStub.callCount).to.equal(1);
       chai
         .expect(updateOpStub.getCall(0).args)
-        .to.deep.equal(['testId', 'Executing']);
+        .to.deep.equal(['testId', 'testExecution', 'Executing']);
       chai
         .expect(opCompletedStub.getCall(0).args)
         .to.deep.equal(['testId', 'testExecution', stubRunData]);

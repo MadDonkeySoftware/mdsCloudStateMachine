@@ -6,7 +6,7 @@ const enums = require('../enums');
 const repos = require('../repos');
 const Choice = require('./choice');
 
-describe('operations', () => {
+describe(__filename, () => {
   const buildChoice = (choices, defaultNext) => {
     const base = {
       Type: 'Choice',
@@ -81,6 +81,7 @@ describe('operations', () => {
           .expect(updateOperationStub.getCall(1).args)
           .to.be.eql([
             'operationId',
+            'executionId',
             enums.OP_STATUS.Succeeded,
             metadata.input,
           ]);
@@ -132,7 +133,7 @@ describe('operations', () => {
           .to.be.eql(['operationId', enums.OP_STATUS.Executing]);
         chai
           .expect(updateOperationStub.getCall(1).args)
-          .to.be.eql(['operationId', enums.OP_STATUS.Failed]);
+          .to.be.eql(['operationId', 'executionId', enums.OP_STATUS.Failed]);
         chai
           .expect(updateExecutionStub.getCall(0).args)
           .to.be.eql(['executionId', enums.OP_STATUS.Failed]);
@@ -167,6 +168,7 @@ describe('operations', () => {
             .expect(updateOperationStub.getCall(1).args)
             .to.be.eql([
               'operationId',
+              'executionId',
               enums.OP_STATUS.Succeeded,
               metadata.input,
             ]);
@@ -203,6 +205,7 @@ describe('operations', () => {
             .expect(updateOperationStub.getCall(1).args)
             .to.be.eql([
               'operationId',
+              'executionId',
               enums.OP_STATUS.Succeeded,
               metadata.input,
             ]);
@@ -227,25 +230,48 @@ describe('operations', () => {
       });
 
       describe('BooleanEquals operator', () => {
-        it('Successful match', () => {
-          // Arrange
-          const nextKey = 'Success';
-          const definition = buildChoice(
-            [
-              {
-                Variable: '$.testMe',
-                BooleanEquals: true,
-                Next: nextKey,
-              },
-            ],
-            'default',
-          );
-          const metadata = {
-            id: 'operationId',
-            execution: 'executionId',
-            input: { testMe: true },
-          };
-          return performSuccessTest(definition, metadata, nextKey);
+        describe('Successful match', () => {
+          it('top level key', () => {
+            // Arrange
+            const nextKey = 'Success';
+            const definition = buildChoice(
+              [
+                {
+                  Variable: '$.testMe',
+                  BooleanEquals: true,
+                  Next: nextKey,
+                },
+              ],
+              'default',
+            );
+            const metadata = {
+              id: 'operationId',
+              execution: 'executionId',
+              input: { testMe: true },
+            };
+            return performSuccessTest(definition, metadata, nextKey);
+          });
+
+          it('nested key', () => {
+            // Arrange
+            const nextKey = 'Success';
+            const definition = buildChoice(
+              [
+                {
+                  Variable: '$.nested.testMe',
+                  BooleanEquals: true,
+                  Next: nextKey,
+                },
+              ],
+              'default',
+            );
+            const metadata = {
+              id: 'operationId',
+              execution: 'executionId',
+              input: { nested: { testMe: true } },
+            };
+            return performSuccessTest(definition, metadata, nextKey);
+          });
         });
 
         it('Unsuccessful match', () => {

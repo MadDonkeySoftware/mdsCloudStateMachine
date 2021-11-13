@@ -4,14 +4,16 @@ const orid = require('@maddonkeysoftware/orid-node');
 const jwt = require('jsonwebtoken');
 const urlJoin = require('url-join');
 
+const globals = require('../globals');
+
 let SIGNATURE;
 
-const getIssuer = () => process.env.ORID_PROVIDER_KEY;
+const getIssuer = () => globals.getEnvVar('ORID_PROVIDER_KEY');
 
 const getAppPublicSignature = async () => {
   if (!SIGNATURE) {
     const url = urlJoin(
-      process.env.MDS_IDENTITY_URL || 'http://localhost',
+      globals.getEnvVar('MDS_IDENTITY_URL', 'http://localhost'),
       'v1',
       'publicSignature',
     );

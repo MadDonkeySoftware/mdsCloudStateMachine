@@ -5,7 +5,10 @@ const repos = require('../repos');
 const operations = require('../operations');
 const enums = require('../enums');
 
-const internalQueueInterval = process.env.QUEUE_INTERVAL || 50;
+const internalQueueInterval = parseInt(
+  globals.getEnvVar('QUEUE_INTERVAL', '1000'),
+  10,
+);
 const batchProcessingSize = 1;
 const logger = globals.getLogger();
 
@@ -36,7 +39,12 @@ const self = {
       const { output, nextOpId, next } = runData;
       logger.trace({ operationId, output }, 'Operation completed.');
       try {
-        await repos.updateOperation(operationId, 'Succeeded', output);
+        await repos.updateOperation(
+          operationId,
+          executionId,
+          'Succeeded',
+          output,
+        );
         if (next) {
           const message = { executionId, operationId: nextOpId };
           await self._queueClient.enqueueMessage(
@@ -66,7 +74,7 @@ const self = {
     const executionId = metadata.execution;
 
     try {
-      await repos.updateOperation(operationId, 'Executing');
+      await repos.updateOperation(operationId, executionId, 'Executing');
       const runData = await t.run();
       await self._handleOpCompleted(operationId, executionId, runData);
     } catch (err) {
@@ -79,12 +87,15 @@ const self = {
       logger.trace({ message }, 'Processing message');
       const event = JSON.parse(message.message);
       if (event.fromInvoke) {
-        repos.updateExecution(event.executionId, 'Executing');
+        await repos.updateExecution(event.executionId, 'Executing');
       }
 
       // TODO: Check to see if execution is cancelled.
 
-      const operation = await repos.getOperation(event.operationId);
+      const operation = await repos.getOperation(
+        event.operationId,
+        event.executionId,
+      );
       const data = await self._buildOperationDataBundle(operation);
       return self._invokeOperation(data);
     } catch (err) {
@@ -140,18 +151,23 @@ const self = {
 
   _enqueueDelayedMessages: async () => {
     const allDelayed = await repos.getDelayedOperations(
-      new Date().toISOString(),
+      globals.toEpoch(new Date()),
     );
-    allDelayed.forEach((delayed) =>
-      repos.updateOperation(delayed.id, enums.OP_STATUS.Pending).then(() =>
-        self._queueClient.enqueueMessage(
+    await Promise.all(
+      allDelayed.map(async (delayed) => {
+        await repos.updateOperation(
+          delayed.id,
+          delayed.execution,
+          enums.OP_STATUS.Pending,
+        );
+        await self._queueClient.enqueueMessage(
           globals.getEnvVar('IN_FLIGHT_QUEUE_NAME'),
           {
             executionId: delayed.execution,
             operationId: delayed.id,
           },
-        ),
-      ),
+        );
+      }),
     );
 
     if (self._running) {

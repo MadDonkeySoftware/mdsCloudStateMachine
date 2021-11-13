@@ -53,7 +53,7 @@ function computeWaitTimestamp(that) {
   }
 
   if (!ts) throw new Error('Could not compute timestamp.');
-  return ts.toISOString();
+  return globals.toEpoch(ts);
 }
 
 Wait.prototype.run = function run() {
@@ -61,20 +61,22 @@ Wait.prototype.run = function run() {
 
   const that = this;
   const { operationId, executionId, output, Next } = this;
-  return repos.getOperation(operationId).then((opDetails) => {
+  return repos.getOperation(operationId, executionId).then((opDetails) => {
     if (
       !opDetails.waitUntilUtc ||
-      opDetails.waitUntilUtc > new Date().toISOString()
+      opDetails.waitUntilUtc > globals.toEpoch(new Date())
     ) {
       const afterUtc = opDetails.waitUntilUtc || computeWaitTimestamp(that);
       logger.trace({ operationId, afterUtc }, 'Task entering waiting state.');
-      return repos.delayOperation(operationId, afterUtc).then(() => null);
+      return repos
+        .delayOperation(operationId, executionId, afterUtc)
+        .then(() => null);
     }
 
     const nextOpId = globals.newUuid();
     logger.trace({ operationId }, 'Task finished waiting.');
     return repos
-      .updateOperation(operationId, enums.OP_STATUS.Succeeded)
+      .updateOperation(operationId, executionId, enums.OP_STATUS.Succeeded)
       .then(() => repos.createOperation(nextOpId, executionId, Next, output))
       .then(() => ({
         nextOpId,

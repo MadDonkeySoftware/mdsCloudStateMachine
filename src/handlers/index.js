@@ -11,13 +11,12 @@ const handlerHelpers = require('./handler-helpers');
 const router = express.Router();
 const logger = globals.getLogger();
 
-const oridBase = {
-  provider: handlerHelpers.getIssuer(),
-  service: 'sm',
-};
-
-const makeOrid = (resourceId, accountId, rider) =>
-  orid.v1.generate(
+const makeOrid = (resourceId, accountId, rider) => {
+  const oridBase = {
+    provider: handlerHelpers.getIssuer(),
+    service: 'sm',
+  };
+  return orid.v1.generate(
     _.merge({}, oridBase, {
       resourceId,
       custom3: accountId,
@@ -25,6 +24,7 @@ const makeOrid = (resourceId, accountId, rider) =>
       useSlashSeparator: true,
     }),
   );
+};
 
 const listStateMachines = (request, response) => {
   const { accountId } = request.parsedToken.payload;
@@ -68,7 +68,7 @@ const updateStateMachine = (request, response) => {
       );
     })
     .catch((err) => {
-      globals.logger.warn({ err }, 'Error updating state machine');
+      logger.warn({ err }, 'Error updating state machine');
       response.status(500);
       response.send();
     });
@@ -136,7 +136,7 @@ const invokeStateMachine = async (request, response) => {
   const queueClient = await mdsSdk.getQueueServiceClient();
   const machine = await repos.getStateMachine(resourceId);
   if (machine) {
-    await repos.createExecution(executionId, machine.active_version);
+    await repos.createExecution(executionId, machine.id, machine.activeVersion);
     await repos.createOperation(
       operationId,
       executionId,

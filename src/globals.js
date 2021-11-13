@@ -63,6 +63,11 @@ const self = {
    * @return {string} the environment variable value
    */
   getEnvVar: (key, defaultValue) => _.get(process.env, [key], defaultValue),
+
+  /**
+   * JS uses milliseconds where epoch is defined in seconds
+   */
+  toEpoch: (ts) => Math.floor(ts.getTime() / 1000),
 };
 
 module.exports = self;

@@ -117,9 +117,14 @@ Choice.prototype.run = function run() {
       next = nextStateKey;
       if (next) {
         repos.createOperation(nextOpId, executionId, next, output);
-        repos.updateOperation(operationId, enums.OP_STATUS.Succeeded, output);
+        repos.updateOperation(
+          operationId,
+          executionId,
+          enums.OP_STATUS.Succeeded,
+          output,
+        );
       } else {
-        repos.updateOperation(operationId, enums.OP_STATUS.Failed);
+        repos.updateOperation(operationId, executionId, enums.OP_STATUS.Failed);
         repos.updateExecution(executionId, enums.OP_STATUS.Failed);
       }
     })
@@ -134,7 +139,7 @@ Choice.prototype.run = function run() {
         { executionId, operationId, err },
         'Failed processing choice step.',
       );
-      repos.updateOperation(operationId, enums.OP_STATUS.Failed);
+      repos.updateOperation(operationId, executionId, enums.OP_STATUS.Failed);
       repos.updateExecution(executionId, enums.OP_STATUS.Failed);
     });
 };

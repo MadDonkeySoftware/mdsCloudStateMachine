@@ -18,7 +18,12 @@ Fail.prototype.run = function run() {
   const { operationId, output, executionId } = this;
 
   return repos
-    .updateOperation(operationId, enums.OP_STATUS.Succeeded, output)
+    .updateOperation(
+      operationId,
+      executionId,
+      enums.OP_STATUS.Succeeded,
+      output,
+    )
     .then(() => repos.updateExecution(executionId, enums.OP_STATUS.Failed))
     .then(() => ({ output }));
 };

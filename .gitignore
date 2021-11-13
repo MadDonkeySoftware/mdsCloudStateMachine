@@ -7,10 +7,12 @@ coverage
 node_modules/
 jspm_packages/
 
-
 # VSCode
 .vscode/
 
 # Project files
 *.log
 logs/
+
+# Other
+.envrc
