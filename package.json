@@ -23,7 +23,7 @@
     "@maddonkeysoftware/orid-node": "0.1.0",
     "axios": "^0.21.1",
     "bunyan": "^1.8.15",
-    "express": "^4.17.1",
+    "express": "^4.18.2",
     "jsonwebtoken": "^8.5.1",
     "lodash": "^4.17.21",
     "mongodb": "^3.6.9",
