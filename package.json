@@ -24,7 +24,7 @@
     "axios": "^0.21.1",
     "bunyan": "^1.8.15",
     "express": "^4.17.1",
-    "jsonwebtoken": "^8.5.1",
+    "jsonwebtoken": "^9.0.0",
     "lodash": "^4.17.21",
     "mongodb": "^3.6.9",
     "mysql-parse": "^2.0.8",
