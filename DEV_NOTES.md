@@ -32,3 +32,17 @@
         * Bolt is golang specific, Alternative needed.
 * Possible Candidates
     * https://github.com/weyoss/redis-smq
+
+## Docker cleanup commands
+
+- Remove dangling images
+
+```
+docker rmi $(docker image ls -f dangling=true -q --no-trunc)
+```
+
+- Remove previously built MDS Serverless Functions images
+
+```
+docker image ls | grep mds-sf- | awk '{print $3}' | xargs docker rmi
+```

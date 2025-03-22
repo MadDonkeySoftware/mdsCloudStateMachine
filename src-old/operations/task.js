@@ -82,7 +82,7 @@ const handleInvokeResponse = (that, result, err) => {
 
 const invokeFunction = async (resource, body) => {
   const client = await mdsSdk.getServerlessFunctionsClient();
-  // TODO: Retry logic
+  // TODO: Retry logic.ts
   return client.invokeFunction(resource, body);
 };
 

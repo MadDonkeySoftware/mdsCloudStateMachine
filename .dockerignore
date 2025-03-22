@@ -1,6 +1,13 @@
 node_modules/
-docs/
 coverage/
 logs/
+src-old/
+bin/
+.idea/
+.vscode/
+.nyc_output/
+dist/
 *.log
-*.test.js
+__tests__/
+__test__/
+docs/
