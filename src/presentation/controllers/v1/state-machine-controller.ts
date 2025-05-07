@@ -10,10 +10,7 @@ import {
   CreateStateMachineRequestBodySchema,
 } from '../../schemas/stateMachines/create-state-machine-request-body-schema';
 import { StateMachineDefinition } from '../../../core/types/state-machine-definition';
-import {
-  UpdateStateMachineRequestBody,
-  UpdateStateMachineRequestBodySchema,
-} from '../../schemas/stateMachines/update-state-machine-request-body-schema';
+import { UpdateStateMachineRequestBody } from '../../schemas/stateMachines/update-state-machine-request-body-schema';
 import {
   InvokeStateMachineRequestBody,
   InvokeStateMachineRequestBodySchema,
@@ -47,13 +44,15 @@ export function stateMachineController(
       const { accountId } = request.parsedToken!.payload;
       const stateMachines =
         await request.services.logic.listStateMachines(accountId);
-      return stateMachines.map((sm) => ({
-        ...sm,
-        orid: makeOrid({
-          resourceId: sm.id,
-          accountId,
-        }),
-      }));
+      return reply.status(200).send(
+        stateMachines.map((sm) => ({
+          ...sm,
+          orid: makeOrid({
+            resourceId: sm.id,
+            accountId,
+          }),
+        })),
+      );
     },
   );
 
@@ -78,13 +77,13 @@ export function stateMachineController(
         accountId,
         request.body as StateMachineDefinition,
       );
-      return {
+      return reply.status(200).send({
         ...stateMachine,
         orid: makeOrid({
           resourceId: stateMachine.id,
           accountId,
         }),
-      };
+      });
     },
   );
 

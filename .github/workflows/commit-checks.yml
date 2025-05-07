@@ -15,6 +15,6 @@ jobs:
         with:
           node-version: '14.x'
       - run: npm ci
-      - run: npm run test-cov --if-present
+      - run: npm run test:cov --if-present
       - run: npm run lint
       - run: npm run pretty-check --if-present

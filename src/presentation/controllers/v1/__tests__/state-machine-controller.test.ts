@@ -1,10 +1,8 @@
-import { validateToken } from '../../../hooks/validate-token';
 import { FastifyInstance, InjectOptions } from 'fastify';
 import { buildApp } from '../../../index';
 import { asFunction, Lifetime } from 'awilix';
 import { Logic } from '../../../../core/classes/logic';
 import { StateMachineDefinition } from '../../../../core/types/state-machine-definition';
-import { mockLogger } from '../../../../test-utilities';
 import { NotFound } from '../../../../core/errors/not-found';
 
 jest.mock('../../../hooks/validate-token', () => {
@@ -19,8 +17,6 @@ jest.mock('../../../hooks/validate-token', () => {
     }),
   };
 });
-
-const mockValidateToken = jest.mocked(validateToken);
 
 describe('state machine controller test', () => {
   let app: FastifyInstance;
