@@ -56,6 +56,7 @@ describe('Operations', () => {
       ['Succeed', Succeed],
       ['Task', Task],
       ['Wait', Wait],
+      ['Unknown', null],
     ])('should return %s', (type, expected) => {
       // Arrange
       const metadata = {
@@ -72,7 +73,13 @@ describe('Operations', () => {
       );
 
       // Assert
-      expect(operation).toBeInstanceOf(expected);
+      if (type === 'Unknown') {
+        // eslint-disable-next-line jest/no-conditional-expect
+        expect(operation).toBeNull();
+      } else {
+        // eslint-disable-next-line jest/no-conditional-expect
+        expect(operation).toBeInstanceOf(expected);
+      }
     });
   });
 });

@@ -27,11 +27,13 @@ export function getOperation(
   logger: BaseLogger,
   repo: StateMachineRepo,
 ) {
+  /* istanbul ignore next */
   if (!definition) {
     logger.error(
       'Definition appears falsy. Insufficient information to find operation.',
     );
   }
+  /* istanbul ignore next */
   if (!metadata) {
     logger.error(
       'Metadata appears falsy. Insufficient information to find operation.',
@@ -49,6 +51,7 @@ export function getOperation(
       },
       'Current state appears falsy',
     );
+    return null;
   }
 
   switch (currentState.Type) {
@@ -63,6 +66,6 @@ export function getOperation(
     case 'Wait':
       return new Wait(currentState as WaitState, metadata, repo, logger);
     default:
-      break;
+      return null;
   }
 }

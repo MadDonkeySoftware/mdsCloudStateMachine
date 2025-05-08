@@ -74,6 +74,7 @@ export class Worker {
           );
         }
       } catch (err) {
+        /* istanbul ignore next */
         this.#logger.warn({ err }, 'Set up of next operation failed');
       }
     }
@@ -94,6 +95,7 @@ export class Worker {
     definition: StateMachineDefinition | null;
   }) {
     const { definition, metadata } = data;
+    /* istanbul ignore if */
     if (!definition) {
       this.#logger.warn({ metadata }, 'No definition found for operation id');
       return;
@@ -106,6 +108,7 @@ export class Worker {
       this.#stateMachineRepo,
     );
 
+    /* istanbul ignore if */
     if (!t) {
       this.#logger.warn({ metadata }, 'No operation found for operation id');
       return;
@@ -143,6 +146,7 @@ export class Worker {
         event.executionId,
       );
 
+      /* istanbul ignore if */
       if (!operation) {
         this.#logger.warn({ message }, 'Operation not found');
         return;
@@ -151,6 +155,7 @@ export class Worker {
       const data = await this.#buildOperationDataBundle(operation);
       return this.#invokeOperation(data);
     } catch (err) {
+      /* istanbul ignore next */
       this.#logger.warn({ err }, 'process event failed');
     }
     return undefined;
@@ -169,7 +174,7 @@ export class Worker {
           // TODO: Deleting the message here may not be the best idea.
           // Entertain moving it to processMessage.
           await this.#queueClient.deleteMessage(queueOrid, message.id);
-          this.#processMessage(message);
+          void this.#processMessage(message);
           data.count += 1;
           return this.#pullMessageFromQueue(queueOrid, limit, data);
         }

@@ -32,6 +32,7 @@ describe('Task', () => {
     Next: 'NextState',
     Catch: [
       {
+        ErrorEquals: ['States.ALL'],
         Next: 'CatchState',
       },
     ],
@@ -73,6 +74,58 @@ describe('Task', () => {
       'some-resource-uri',
       JSON.stringify(baseMetadata.input),
     );
+  });
+
+  it('temp', async () => {
+    // Arrange
+    const definition = baseDefinition as unknown as TaskState;
+    (v4 as jest.Mock).mockReturnValue('nextOpId');
+    mockInvokeFunction.mockRejectedValue(
+      new Error('Failed to invoke resource'),
+    );
+
+    const task = new Task(definition, baseMetadata, mockRepo, mockLogger);
+
+    // Act
+    const result = await task.run();
+
+    // Assert
+    expect(mockInvokeFunction).toHaveBeenCalledWith(
+      'some-resource-uri',
+      JSON.stringify(baseMetadata.input),
+    );
+    expect(mockRepo.updateOperation).toHaveBeenCalledTimes(2);
+    expect(mockRepo.updateOperation).toHaveBeenCalledWith(
+      baseMetadata.id,
+      baseMetadata.execution,
+      'Executing',
+      null,
+    );
+    expect(mockRepo.updateOperation).toHaveBeenCalledWith(
+      baseMetadata.id,
+      baseMetadata.execution,
+      'Failed',
+      {
+        someData: 'value',
+      },
+    );
+    expect(mockRepo.createOperation).toHaveBeenCalledTimes(1);
+    expect(mockRepo.createOperation).toHaveBeenCalledWith(
+      'nextOpId',
+      baseMetadata.execution,
+      'CatchState',
+      {
+        someData: 'value',
+      },
+    );
+    expect(mockRepo.updateExecution).toHaveBeenCalledTimes(0);
+    expect(result).toStrictEqual({
+      next: 'CatchState',
+      nextOpId: 'nextOpId',
+      output: {
+        someData: 'value',
+      },
+    });
   });
 
   describe('should succeed operation and create next operation', () => {

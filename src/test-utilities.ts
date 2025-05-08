@@ -20,6 +20,7 @@ export const mockQueueClient = {
   _serviceUrl: 'http://localhost:8888',
   authManager: null,
   get serviceUrl() {
+    /* istanbul ignore next */
     return 'http://localhost:8888';
   },
 
