@@ -1,3 +1,4 @@
+# NOTE: this is out of date as the data model is not using a document store.
 ## Data Model
 
 * StateMachine

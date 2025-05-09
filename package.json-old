@@ -1,0 +1,50 @@
+{
+  "name": "mds-cloud-state-machine",
+  "version": "1.0.0",
+  "description": "A StepFunctions-like implementation for use with any FaaS",
+  "repository": {
+    "url": "https://github.com/MadDonkeySoftware/mdsCloudStateMachine"
+  },
+  "main": "index.js",
+  "scripts": {
+    "server": "./bin/server",
+    "test": "NODE_ENV=test mocha",
+    "test-cov": "NODE_ENV=test nyc mocha",
+    "test-watch": "NODE_ENV=test nodemon --exec mocha",
+    "test-watch-cov": "NODE_ENV=test nodemon --exec \"nyc mocha\"",
+    "lint": "eslint 'src/**'",
+    "pretty-check": "prettier -c ./src",
+    "pretty": "prettier -w ./src"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@maddonkeysoftware/mds-cloud-sdk-node": "0.2.7",
+    "@maddonkeysoftware/orid-node": "0.1.0",
+    "axios": "^0.21.1",
+    "bunyan": "^1.8.15",
+    "express": "^4.17.1",
+    "jsonwebtoken": "^8.5.1",
+    "lodash": "^4.17.21",
+    "luxon": "^2.1.1",
+    "mongodb": "^3.7.3",
+    "url-join": "^4.0.1",
+    "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "chai": "^4.3.4",
+    "chai-exclude": "^2.0.3",
+    "eslint": "^7.29.0",
+    "eslint-config-airbnb-base": "^14.2.1",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-import": "^2.23.4",
+    "eslint-plugin-prettier": "^4.0.0",
+    "mocha": "^9.0.1",
+    "nodemon": "^2.0.7",
+    "nyc": "^15.1.0",
+    "prettier": "^2.4.1",
+    "sinon": "^11.1.1",
+    "sinon-chai": "^3.7.0",
+    "supertest": "^6.1.3"
+  }
+}

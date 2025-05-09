@@ -1,2 +1,4 @@
-auth.sample.json
-auth.json
+dist/
+*.zip
+src-old/
+*.md

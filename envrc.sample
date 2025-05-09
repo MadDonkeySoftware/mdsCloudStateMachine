@@ -1,0 +1,13 @@
+# Remove this comment, rename file to ".envrc", and update the relevant passwords
+export MDS_SM_PROVIDER_KEY=mdsCloud
+export FN_SM_DB_URL="mongodb://dbuser:somepass@127.0.0.1:27017"
+export ORID_PROVIDER_KEY="mdsCloud"
+export PENDING_QUEUE_NAME="orid:1:mdsCloud:::1:qs:mds-sm-pendingQueue"
+export IN_FLIGHT_QUEUE_NAME="orid:1:mdsCloud:::1:qs:mds-sm-inFlightQueue"
+export MDS_IDENTITY_URL="http://127.0.0.1:8079"
+export MDS_SM_QS_URL="http://127.0.0.1:8083"
+export MDS_SM_SF_URL="http://127.0.0.1:8085"
+export MDS_SM_SYS_USER="mdsCloud"
+export MDS_SM_SYS_ACCOUNT="1"
+export MDS_SM_SYS_PASSWORD="sysPass"
+export APP_PORT="8086"
